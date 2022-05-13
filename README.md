@@ -1,4 +1,4 @@
-Project - Automated Selection of Studies for Sytematic Literature Reviews in Software Engineering 
+#  Automated Selection of Studies for Sytematic Literature Reviews in Software Engineering 
 
 
 Oveleaf Project: https://www.overleaf.com/5426632995yqrkbktthqpk
