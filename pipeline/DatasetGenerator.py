@@ -8,9 +8,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 # each containing a list (with the same size), each list index refers to one entry of the bib files.
 # Applies text vectorization techniques to get features .
 class TextVectorizer:
-    dataset_testing = list()
-    dataset_training = list()
-
     def __init__(self, vectorizer=TfidfVectorizer()):
         self._vectorizer = vectorizer
 
