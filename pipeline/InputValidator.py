@@ -5,7 +5,7 @@ import os
 from copy import deepcopy
 
 # Class to validate bib files of the Training and Testing sets, checking missing keys or duplicated entries
-class BibValidator:
+class InputValidator:
     training_set = list()
     testing_set = list()
     _are_entries_valid = True
@@ -16,7 +16,7 @@ class BibValidator:
 
     # Method to validade a .bib file and report any errors found and removes duplicates (entries with the same title)
     # Return list of dicts with uniques entries associated with each set
-    def validate_bib_file(self, file_path: str, set_name: str, was_accepted: bool):
+    def validate_bib_file(self, file_path: str, set_name: str, category: bool):
         texts_list = list()
         titles_list = list()
         duplicated_titles = dict()
@@ -26,7 +26,7 @@ class BibValidator:
             db = bibtexparser.load(bib_file)
             for bib_index, entry in enumerate(db.entries, start=0):
                 is_entry_valid = True
-                category = 'selected' if was_accepted == True else 'removed'
+                category = 'selected' if category == True else 'removed'
                 if ('abstract' not in entry) or entry['abstract'] == None or len(entry['abstract']) == 0:
                     print("\tMissing abstract:", entry)
                     is_entry_valid = False
@@ -71,7 +71,7 @@ class BibValidator:
 
     # Create list with duplicated entries by comparing difference between list and set with unique entries
     @staticmethod
-    def get_difference(lst1: list, set2: set):
+    def get_duplicates(lst1: list, set2: set):
         lst_copy = deepcopy(lst1)
         for i in set2:
             if i in lst_copy:
@@ -88,7 +88,7 @@ class BibValidator:
             assert len(merged_titles) == len(unique_titles)
         except AssertionError:
             print("\n{} sets have {} duplicated entries!".format(dataset_type,len(merged_titles) - len(unique_titles)))
-            duplicated_entries = BibValidator.get_difference(merged_titles, unique_titles)
+            duplicated_entries = InputValidator.get_duplicates(merged_titles, unique_titles)
             print("The following entries appear both as included and excluded in the {} set:\n".format(dataset_type),
                   duplicated_entries)
             self._are_entries_valid = False

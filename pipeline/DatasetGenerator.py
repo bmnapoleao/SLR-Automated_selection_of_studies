@@ -18,7 +18,7 @@ class TextVectorizer:
     # vectorization.
     def format_entry_set(self, dataset_lst):
         # Formats to use boolean for selected entries (1) and non-selected entries (0)
-        categories = [1 if text_data['category'] == 'selecionado' else 0 for text_data in dataset_lst]
+        categories = [1 if text_data['category'] == 'selected' else 0 for text_data in dataset_lst]
         texts = [text_data['content'] for text_data in dataset_lst]
         years = [text_data['year'] for text_data in dataset_lst]
         features = self._vectorizer.fit_transform(texts)
