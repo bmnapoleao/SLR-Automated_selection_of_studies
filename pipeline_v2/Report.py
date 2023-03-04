@@ -8,14 +8,10 @@ import os
 # Writes a csv file on the "/output" dir with the format 'k<number_of_features>-report.csv' containing the results
 class Report:
     output_path = os.path.join(os.getcwd(), 'output')
-    def __init__(self, testing_dataset: dict, training_dataset: dict, dt_pred: list, svm_pred: list, k_fs: int,
-                 result_file: str=None):
+    def __init__(self, testing_dataset: dict, training_dataset: dict, dt_pred: list, svm_pred: list, k_fs: int):
         self._df_testing = pd.DataFrame.from_dict(testing_dataset)
         self._df_training = pd.DataFrame.from_dict(training_dataset)
-        if result_file:
-            self._result_file_path = os.path.join(os.getcwd(), result_file)
-        else:
-            self._result_file_path = os.path.join(os.getcwd(), 'output/k{}-report.csv'.format(k_fs))
+        self._resuls_file_path = os.path.join(os.getcwd(), 'output/k{}-report.csv'.format(k_fs))
         self._df_testing['DT_pred'] = dt_pred
         self._df_testing['SVM_pred'] = svm_pred
 
@@ -47,29 +43,15 @@ class Report:
         print("Number of Real Positives:", len(df_real_positives))
         print("Number of False Negatives:", len(df_false_negative))
         print("Number of False Positives:", len(df_false_positive))
-        all_dfs = {'REAL_NEGATIVES': df_real_negatives, 'REAL_POSITIVES': df_real_positives,
-                   'FALSE_NEGATIVES': df_false_negative, 'FALSE_POSITIVES': df_false_positive
-        }
-        return all_dfs
-
-    @staticmethod
-    def print_detailed_results(df_dt: pd.DataFrame, df_svm: pd.DataFrame):
-        for i in df_dt:
-            print('\nComparing {} for both sets:'.format(i))
-            result = df_dt[i].merge(df_svm[i], on='texts')
-            print(result)
-        return
 
     def report_and_write_csv(self):
         print("\nResults for Decision Tree")
-        df_dt_report = Report.analyze_classifier(self._df_testing, 'DT_pred')
+        Report.analyze_classifier(self._df_testing, 'DT_pred')
         print("\nResults for SVM")
-        df_svm_report = Report.analyze_classifier(self._df_testing, 'SVM_pred')
-
-        Report.print_detailed_results(df_dt_report, df_svm_report)
+        Report.analyze_classifier(self._df_testing, 'SVM_pred')
 
         unused_columns = ['features', 'years']
         self._df_testing.drop(unused_columns, inplace=True, axis=1)
         self._df_testing.rename(columns={'categories': 'Was Selected?'}, inplace=True)
-        with codecs.open(self._result_file_path, 'w', encoding='utf-8') as report_file:
+        with codecs.open(self._resuls_file_path, 'w', encoding='utf-8') as report_file:
             self._df_testing.to_csv(report_file, index=False)
