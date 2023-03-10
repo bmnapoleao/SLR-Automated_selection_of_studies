@@ -58,15 +58,12 @@ class StopWordsFilter:
 # Class that receives valid data extracted from bib files and converts to filtered data by applying calling other
 # classes to apply NLP techniques
 class TextFilter:
-    filtered_testing_set = list()
-    filtered_training_set = list()
+    filtered_dataset = list()
 
-    def __init__(self, testing_set: list, training_set: list):
-        self._testing_set = testing_set
-        self._training_set = training_set
+    def __init__(self, training_set: list, testing_set: list):
+        self._dataset = training_set + testing_set
 
     def execute(self):
         filters = [LemmatizerFilter(), StopWordsFilter()]
         text_filter_composite = TextFilterComposite(filters)
-        self.filtered_testing_set = text_filter_composite.apply_filters(self._testing_set)
-        self.filtered_training_set = text_filter_composite.apply_filters(self._training_set)
+        self.filtered_dataset = text_filter_composite.apply_filters(self._dataset)

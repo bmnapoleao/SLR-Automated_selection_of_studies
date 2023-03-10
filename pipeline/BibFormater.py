@@ -10,7 +10,7 @@ class BibFormater:
     training_set = list()
     testing_set = list()
     _are_entries_valid = True
-    bibs_examples_dir = '/home/mcostalonga/new-home/thesis/git-repo-slr/SLR-Automated_selection_of_studies/bibs-other-exemples' # TODO: Change to not use hardcoded fullpath
+    bibs_examples_dir = '/bibs-other-exemples'  # TODO: Change to not use hardcoded fullpath
     bibs_examples_formated_dir = os.path.join(bibs_examples_dir, 'bibs-formated-data')
     bibs_examples_original_dir = os.path.join(bibs_examples_dir, 'bibs-original-format')
 

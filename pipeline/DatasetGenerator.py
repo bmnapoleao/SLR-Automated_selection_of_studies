@@ -30,14 +30,11 @@ class TextVectorizer:
 # Class that receives list of dict containing filtered data. Initialize text vectorization class with its configuration
 # to generate new dataset with features
 class DatasetGenerator:
-    testing_dataset = list()
-    training_dataset = list()
+    dataset = list()
 
-    def __init__(self, filtered_testing_set: list, filtered_training_set: list):
-        self._testing_set = filtered_testing_set
-        self._training_set = filtered_training_set
+    def __init__(self, filtered_dataset: list):
+        self._filtered_dataset = filtered_dataset
 
     def execute(self):
         vectorizer = TextVectorizer(TfidfVectorizer(ngram_range=(1, 3), use_idf=True))
-        self.testing_dataset = vectorizer.format_entry_set(self._testing_set)
-        self.training_dataset = vectorizer.format_entry_set(self._training_set)
+        self.dataset = vectorizer.format_entry_set(self._filtered_dataset)
