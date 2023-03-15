@@ -4,9 +4,9 @@
 import random
 
 import numpy as np
-from sklearn import tree, svm
+from sklearn import tree, metrics, svm
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import cross_validate, GridSearchCV, TimeSeriesSplit
+from sklearn.model_selection import cross_validate, GridSearchCV, TimeSeriesSplit, train_test_split
 import pandas as pd
 from sklearn.metrics import classification_report
 from sklearn.feature_selection import SelectKBest
@@ -42,21 +42,28 @@ class SimpleClassifier:
         self._seed = seed
         self._n_splits = n_splits
 
-    def execute(self, df_training_set: pd.DataFrame, df_testing_set: pd.DataFrame, fs: SelectKBest):
+    def execute(self, dataset: dict(), fs: SelectKBest):
         print("Executing...")
 
-        X_train = df_training_set['features']  # Drop the 'category' column for the input features
-        y_train = df_training_set['categories']
-        X_test = df_testing_set['features']
-        y_test = df_testing_set['categories']
+        # X = dataset  # Drop the 'category' column for the input features
+        # y = X.pop('categories') # Drop the 'category' column for the input features
+        df = pd.DataFrame(dataset)
 
-        # TODO: compare
-        # groups = df_training_set['years']
-        # random.seed(self._seed)
-        # kfold = YearsSplit(n_splits=self._n_splits, years=groups)
+        X = df['features']  # Drop the 'category' column for the input features
+        y = df['categories']
+        groups = dataset['years']
+        random.seed(self._seed)
+        kfold = YearsSplit(n_splits=self._n_splits, years=groups)
+        # Get classifier model (DT or SVM)
+        model = self.get_classifier(X, y)
 
-        # set up time series cross-validator
-        tscv = TimeSeriesSplit(n_splits=5)
+        scores = cross_validate(model, X, y, cv=kfold, scoring=['f1_macro', 'precision_macro', 'recall_macro'])
+        print("OUR APPROACH F-measure: %s on average and %s SD" %
+              (scores['test_f1_macro'].mean(), scores['test_f1_macro'].std()))
+        print("OUR APPROACH Precision: %s on average and %s SD" %
+              (scores['test_precision_macro'].mean(), scores['test_precision_macro'].std()))
+        print("OUR APPROACH Recall: %s on average and %s SD" %
+              (scores['test_recall_macro'].mean(), scores['test_recall_macro'].std()))
 
         # initialize a list to store the metrics for each fold
         fold_accuracies = []
@@ -64,35 +71,63 @@ class SimpleClassifier:
         fold_recalls = []
         fold_f_measures = []
 
-        # Get classifier model (DT or SVM)
-        model = self.get_classifier(X_train, y_train)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
 
-        # loop through each fold and train/test the model
-        for train_index, test_index in tscv.split(X_train):
-            # select the data for the current fold
-            X_train_fold = X_train.iloc[train_index].values
-            y_train_fold = y_train.iloc[train_index].values
-            X_train_fold = fs.transform(X_train_fold)
-            X_train_fold = X_train_fold.toarray()
 
-            X_val_fold = X_train.iloc[test_index].values
-            y_val_fold = y_train.iloc[test_index].values
+        # Get the names of the rows in X_test
+        test_names = df.iloc[X_test.index]['texts']
+        test_years = df.iloc[X_test.index]['years']
+        print("\n\n\nTESTING:")
+        for name, year in zip(test_names, test_years):
+            print("{} - {}".format(year, name))
+        print(":TESTING\n\n\n")
 
-            # Train the model on the training data
-            model.fit(X_train_fold, y_train_fold)
 
-            # test the model on the testing data
-            y_pred_fold = model.predict(X_val_fold)
+        model.fit(X_train, y_train)
+        probabilities = model.predict_proba(X_test)
+        scores['probabilities'] = probabilities[:, 1]
+        scores['y_test'] = y_test
 
-            # compute the metrics for the fold
-            accuracy_fold = accuracy_score(y_val_fold, y_pred_fold)
-            precision_fold, recall_fold, f_measure_fold, _ = classification_report(y_val_fold, y_pred_fold, output_dict=True)['weighted avg']
+        correct_exclusion_rate = []
+        threasholds = []
+        missed = []
+        fscore_threashold = []
+        exclusion_baseline = []
+        missed_baseline = []
 
-            # store the metrics for the fold
-            fold_accuracies.append(accuracy_fold)
-            fold_precisions.append(precision_fold)
-            fold_recalls.append(recall_fold)
-            fold_f_measures.append(f_measure_fold)
+
+
+        for train_index, test_index in kfold.split(X, y):
+            X_train, X_test = X[train_index], X[test_index]
+            y_train, y_test = y[train_index], y[test_index]
+            model.fit(X_train, y_train)
+            y_score = model.predict_proba(X_train)[:, 1]
+            precision, recall, threasholds2 = metrics.precision_recall_curve(y_train, y_score)
+            y_score = model.predict_proba(X_test)[:, 1]
+            if (threasholds2[0] > 0.5):
+                threasholds2 = [0.5]
+            # matrix = metrics.confusion_matrix(y_test, [0 if i < threasholds2[0] else 1 for i in y_score])
+            # correct_exclusion_rate.append(
+            #     matrix[0, 0] /
+            #     (matrix[0, 0] + matrix[1, 1] + matrix[0, 1] + matrix[1, 0]))
+            # missed.append(matrix[1, 0] / (matrix[1, 1] + matrix[1, 0]))
+            threasholds.append(threasholds2[0])
+            fscore_threashold.append(metrics.f1_score(y_test, [0 if i < threasholds2[0] else 1 for i in y_score]))
+
+            # matrix = metrics.confusion_matrix(y_test, [0 if i < 0.5 else 1 for i in y_score])
+            # exclusion_baseline.append(
+            #     matrix[0, 0] /
+            #     (matrix[0, 0] + matrix[1, 1] + matrix[0, 1] + matrix[1, 0]))
+            # missed_baseline.append(matrix[1, 0] / (matrix[1, 1] + matrix[1, 0]))
+
+        # scores['exclusion_rate'] = correct_exclusion_rate
+        scores['threasholds'] = threasholds
+        # scores['missed'] = missed
+        scores['fscore_threashold'] = fscore_threashold
+        # scores['exclusion_baseline'] = exclusion_baseline
+        # scores['missed_baseline'] = missed_baseline
+
+        dataset['%s_scores' % self.classifier_name] = scores
 
         # calculate the mean metrics across all folds
         mean_accuracy = np.mean(fold_accuracies)
@@ -113,17 +148,15 @@ class SimpleClassifier:
             'weighted avg']
 
         # print the results
-        print(f"Mean cross-validation accuracy: {mean_accuracy}")
-        print(f"Mean cross-validation precision: {mean_precision}")
-        print(f"Mean cross-validation recall: {mean_recall}")
-        print(f"Mean cross-validation F-measure: {mean_f_measure}")
-        print(f"Test set accuracy: {accuracy_test}")
-        print(f"Test set precision: {precision_test}")
-        print(f"Test set recall: {recall_test}")
-        print(f"Test set F-measure: {f_measure_test}")
+        # print(f"exclusion_rate: {scores['exclusion_rate']}")
+        print(f"threasholds: {scores['threasholds']}")
+        # print(f"missed: {scores['missed']}")
+        print(f"fscore_threashold: {scores['fscore_threashold']}")
+        # print(f"exclusion_baseline: {scores['exclusion_baseline']}")
+        # print(f"missed_baseline: {scores['missed_baseline']}")
 
         # Returns the y_test with for the currently model
-        return y_pred_test
+        return y_pred_test, y_test
 
     # def execute(self, dataset_train, dataset_test):
     #     print("Executing...")

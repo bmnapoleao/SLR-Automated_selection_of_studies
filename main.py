@@ -6,7 +6,6 @@ from pipeline.FeaturesSelector import FeaturesSelector
 from pipeline.InputValidator import InputValidator
 from pipeline.Report import Report
 from pipeline.TextFiltering import TextFilter
-from sklearn.feature_selection import SelectKBest
 
 from pipeline.BibFormater import BibFormater
 
@@ -64,15 +63,14 @@ if __name__ == '__main__':
 
     # # Decision Tree
     dt_classifier = DecisionTreeClassifier(seed=42, criterion='gini', n_splits=number_of_splits)
-    dt_predictions = dt_classifier.execute(df_training_set=feature_selector.df_training_set,
-                                           df_testing_set=feature_selector.df_testing_set, fs=fs)
+    dt_predictions, y_ref_dt = dt_classifier.execute(dataset=feature_selector.df_all_set, fs=fs)
 
     # # SVM
     svm_classifier = SVMClassifier(seed=42, n_splits=number_of_splits)
-    svm_predictions = svm_classifier.execute(df_training_set=feature_selector.df_training_set,
-                                             df_testing_set=feature_selector.df_testing_set, fs=fs)
+    svm_predictions, y_ref_svm = svm_classifier.execute(dataset=feature_selector.df_all_set, fs=fs)
 
     # Compare results and generate reports
     report = Report(training_dataset=feature_selector.df_training_set, testing_dataset=feature_selector.df_testing_set,
-                    dt_pred=dt_predictions, svm_pred=svm_predictions, k_fs=number_of_features)
+                    dt_pred=dt_predictions, svm_pred=svm_predictions, k_fs=number_of_features,
+                    y_dt=y_ref_dt, y_svm=y_ref_svm)
     report.report_and_write_csv()

@@ -8,6 +8,7 @@ import pandas as pd
 class FeaturesSelector:
     df_training_set = pd.DataFrame()
     df_testing_set = pd.DataFrame()
+    df_all_set = dict()
 
     def __init__ (self, k_fs=-1):
         try:
@@ -61,9 +62,10 @@ class FeaturesSelector:
         # 1) Apply BEFORE splitting data into training and testing
         dataset['features'] = fs.fit_transform(X, y)
         # FIXME: change to avoid using hardcoded  2014 year
-        tmp_set = self._split_into_dataframes(dataset, year_to_split=2014)
-        self.df_training_set = tmp_set[0]
-        self.df_testing_set = tmp_set[1]
+        # tmp_set = self._split_into_dataframes(dataset, year_to_split=2014)
+        # self.df_training_set = tmp_set[0]
+        # self.df_testing_set = tmp_set[1]
+        self.df_all_set = dataset
 
         # 2) Split data into training and testing and THEN use fit on (X_train) and transform on (X_test)
         # TODO: implement
