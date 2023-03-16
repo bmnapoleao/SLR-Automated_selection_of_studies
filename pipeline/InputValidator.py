@@ -16,7 +16,7 @@ class InputValidator:
 
     # Method to validade a .bib file and report any errors found and removes duplicates (entries with the same title)
     # Return list of dicts with uniques entries associated with each set
-    def validate_bib_file(self, file_path: str, set_name: str, category: bool):
+    def validate_bib_file(self, file_path: str, set_name: str, was_selected: bool):
         texts_list = list()
         titles_list = list()
         duplicated_titles = dict()
@@ -26,7 +26,7 @@ class InputValidator:
             db = bibtexparser.load(bib_file)
             for bib_index, entry in enumerate(db.entries, start=0):
                 is_entry_valid = True
-                category = 'selected' if category == True else 'removed'
+                category = 'selected' if was_selected == True else 'removed'
                 if ('abstract' not in entry) or entry['abstract'] == None or len(entry['abstract']) == 0:
                     print("\tMissing abstract:", entry)
                     is_entry_valid = False
@@ -45,7 +45,11 @@ class InputValidator:
 
                     if (title not in titles_list):
                         titles_list.append(title)
-                        content = content.split('\n')[0]
+
+                        # This should be used only if we want to consider studies that doesn't have an abstract field
+                        # so we would evaluate the study only based on its title
+                        # # content = content.split('\n')[0]
+
                         texts_list.append({
                             'title': title,
                             'content': content,
@@ -100,38 +104,17 @@ class InputValidator:
 
     # Validates the four files of ../bibs/ and initialize data structures
     def execute(self):
-        # TODO: ORIGINAL EXPERIMENT
-        # # Using complete datasets
-        # file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs/Testing set - Excluded.bib')
-        # file_path_included_testing = os.path.join(os.getcwd(), 'bibs/Testing set - Included.bib')
-        # file_path_excluded_training = os.path.join(os.getcwd(), 'bibs/Training set - Excluded.bib')
-        # file_path_included_training = os.path.join(os.getcwd(), 'bibs/Training set - Included.bib')
+        # TODO: DUMMY EXPERIMENT
+        # # Using really small dataset
+        file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs-small-set/Testing set - Excluded.bib')
+        file_path_included_testing = os.path.join(os.getcwd(), 'bibs-small-set/Testing set - Included.bib')
+        file_path_excluded_training = os.path.join(os.getcwd(), 'bibs-small-set/Training set - Excluded.bib')
+        file_path_included_training = os.path.join(os.getcwd(), 'bibs-small-set/Training set - Included.bib')
 
-        # # TODO: MANUAL ADJUSTS
-        # # Using training as test and testing and training to see with dataset becomes balanced and can use parameters for classifiers
-        # file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs-manual-changes/Testing set - Excluded.bib')
-        # file_path_included_testing = os.path.join(os.getcwd(), 'bibs-manual-changes/Testing set - Included.bib')
-        # file_path_excluded_training = os.path.join(os.getcwd(), 'bibs-manual-changes/Training set - Excluded.bib')
-        # file_path_included_training = os.path.join(os.getcwd(), 'bibs-manual-changes/Training set - Included.bib')
-
-        # # TODO: INVERTED EXPERIMENT
-        # # Using training as test and testing and training to see with dataset becomes balanced and can use parameters for classifiers
-        # file_path_excluded_training = os.path.join(os.getcwd(), 'bibs-manual-changes/Testing set - Excluded.bib')
-        # file_path_included_training = os.path.join(os.getcwd(), 'bibs-manual-changes/Testing set - Included.bib')
-        # file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs-manual-changes/Training set - Excluded.bib')
-        # file_path_included_testing = os.path.join(os.getcwd(), 'bibs-manual-changes/Training set - Included.bib')
-
-
-        # # TODO: Using only small sample of datasets
-        file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs-sample/Testing set - Excluded.bib')
-        file_path_included_testing = os.path.join(os.getcwd(), 'bibs-sample/Testing set - Included.bib')
-        file_path_excluded_training = os.path.join(os.getcwd(), 'bibs-sample/Training set - Excluded.bib')
-        file_path_included_training = os.path.join(os.getcwd(), 'bibs-sample/Training set - Included.bib')
-
-        testing_excluded = self.validate_bib_file(file_path_excluded_testing, 'Testing-Excluded', False)
-        testing_included = self.validate_bib_file(file_path_included_testing, 'Testing-Included', True)
-        training_excluded = self.validate_bib_file(file_path_excluded_training, 'Training-Excluded', False)
-        training_included = self.validate_bib_file(file_path_included_training, 'Training-Included', True)
+        testing_excluded = self.validate_bib_file(file_path_excluded_testing, 'Testing-Excluded', was_selected=False)
+        testing_included = self.validate_bib_file(file_path_included_testing, 'Testing-Included', was_selected=True)
+        training_excluded = self.validate_bib_file(file_path_excluded_training, 'Training-Excluded', was_selected=False)
+        training_included = self.validate_bib_file(file_path_included_training, 'Training-Included', was_selected=True)
 
         if self.validate_datasets(testing_excluded, testing_included, 'Testing Set'):
             self.testing_set = testing_excluded + testing_included

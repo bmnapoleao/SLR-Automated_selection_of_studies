@@ -34,7 +34,8 @@ class FeaturesSelector:
         self._affinity_score = [
             self._affinity(features[:, i], categories, 1) -
             self._affinity(features[:, i], categories, 0)
-            for i in range(0, n_words) ]
+            for i in range(0, n_words)
+        ]
         return (self._affinity_score, [])
 
     def _split_into_dataframes(self, dataset: dict, year_to_split: int):
@@ -56,12 +57,14 @@ class FeaturesSelector:
         X = dataset['features']
         y = dataset['categories']
 
+        # FIXME #3: Check different configurations for SelectKBest (maybe chi2? SelectKBest(chi2, k=1000))
+        # FIXME #4: This could improve the time, 'fs.fit_transform' its a huge bottle neck that takes a lot of time to process
         fs = SelectKBest(self._score, k=self._k)  # Initialze selector
 
         # OBS: Two options to apply methods feature_selection / fit_transform:
         # 1) Apply BEFORE splitting data into training and testing
         dataset['features'] = fs.fit_transform(X, y)
-        # FIXME: change to avoid using hardcoded  2014 year
+        # FIXME #0: change to avoid using hardcoded  2014 year
         # tmp_set = self._split_into_dataframes(dataset, year_to_split=2014)
         # self.df_training_set = tmp_set[0]
         # self.df_testing_set = tmp_set[1]
@@ -71,5 +74,6 @@ class FeaturesSelector:
         # TODO: implement
         # fs.fit(X, y)
         # X_selected = fs.transform(X)
+
         return fs
         # return tmp_set

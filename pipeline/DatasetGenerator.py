@@ -18,8 +18,13 @@ class TextVectorizer:
         categories = [1 if text_data['category'] == 'selected' else 0 for text_data in dataset_lst]
         texts = [text_data['content'] for text_data in dataset_lst]
         years = [text_data['year'] for text_data in dataset_lst]
+        titles = [text_data['title'] for text_data in dataset_lst]
+
+        # Vectorize data (convert texts' content to numeric vectors)
         features = self._vectorizer.fit_transform(texts)
+
         dataset = {
+            'titles': titles,
             'texts': texts,
             'features': features,
             'categories': np.array(categories),
@@ -36,5 +41,9 @@ class DatasetGenerator:
         self._filtered_dataset = filtered_dataset
 
     def execute(self):
+        print("\t== [Executing DatasetGenerator] Vectorizing content and formating dataset ==")
+        # FIXME #1: Check different configurations for this method (currently using TfidfVectorizer with this config)
         vectorizer = TextVectorizer(TfidfVectorizer(ngram_range=(1, 3), use_idf=True))
         self.dataset = vectorizer.format_entry_set(self._filtered_dataset)
+        print("-----------------------------------------------------")
+

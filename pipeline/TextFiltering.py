@@ -25,9 +25,12 @@ class TextFilterComposite:
     def apply_filters(self, text_list: list):
         result = []
         for text in text_list:
+            # TODO: Check different configurations
+            # See if other tokens should be considered (noted that some examples contained chars like '$')
             tokens = word_tokenize(text['content'])
             filtered_text = self._filter(tokens)
             result.append({
+                'title': text['title'],
                 'content': filtered_text.lower(),
                 'category': text['category'],
                 'year': text['year']
@@ -41,11 +44,15 @@ class LemmatizerFilter:
         self._lemmatizer = WordNetLemmatizer()
 
     def filter (self, tokens):
+        # TODO: Check different configurations
         tags = pos_tag(tokens)
-        return [self._lemmatizer.lemmatize(token[0], pos=token[1][0].lower())
-                    if token[1][0].lower() in ('a', 'n', 'v', 'r')
-                    else self._lemmatizer.lemmatize(token[0])
-                    for token in tags]
+        filtered_result = [
+            self._lemmatizer.lemmatize(token[0], pos=token[1][0].lower())
+            if token[1][0].lower() in ('a', 'n', 'v', 'r')
+            else self._lemmatizer.lemmatize(token[0])
+            for token in tags
+        ]
+        return filtered_result
 
 # NLP technique for configuring and using StopWords
 class StopWordsFilter:
@@ -53,7 +60,8 @@ class StopWordsFilter:
         print('===== Configuring stop words removal =====')
 
     def filter (self, tokens):
-        return [word for word in tokens if not word.lower() in stopwords.words('english')]
+        filtered_result = [word for word in tokens if not word.lower() in stopwords.words('english')]
+        return filtered_result
 
 # Class that receives valid data extracted from bib files and converts to filtered data by applying calling other
 # classes to apply NLP techniques
@@ -64,6 +72,9 @@ class TextFilter:
         self._dataset = training_set + testing_set
 
     def execute(self):
+        print("\t== [Executing TextFilter] Applying text filters ==")
         filters = [LemmatizerFilter(), StopWordsFilter()]
         text_filter_composite = TextFilterComposite(filters)
         self.filtered_dataset = text_filter_composite.apply_filters(self._dataset)
+        print("-----------------------------------------------------")
+

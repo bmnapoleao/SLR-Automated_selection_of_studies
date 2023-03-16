@@ -19,11 +19,13 @@ if __name__ == '__main__':
     #     print("\nMissing parameter with the number of kFeatures. Please inform in the command line.")
     #     exit(0)
     # number_of_features = int(sys.argv[1])
-    number_of_features = 1500
+    number_of_features = 8000
+
+    # FIXME #2: Check integrity of dataset Title: "PMBOK Guides" seems to be a Book with an abstract field that doens't looks valid
 
     # TODO: Delete this or comment when done testing
     seed = None
-    result_file = 'output/new-samples-CLSv4-k{}-report.csv'.format(number_of_features)
+    result_file = 'output/dummy-test-k{}-report.csv'.format(number_of_features)
 
     # Validates input files
     validator = InputValidator()
