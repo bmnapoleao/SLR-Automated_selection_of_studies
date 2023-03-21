@@ -75,4 +75,5 @@ if __name__ == '__main__':
     report = Report(training_dataset=feature_selector.df_training_set, testing_dataset=feature_selector.df_testing_set,
                     dt_pred=dt_predictions, svm_pred=svm_predictions, k_fs=number_of_features,
                     y_dt=y_ref_dt, y_svm=y_ref_svm)
-    report.report_and_write_csv()
+    # report.report_and_write_csv()
+    print("\n\n\n\t\tEND\n\n\n")

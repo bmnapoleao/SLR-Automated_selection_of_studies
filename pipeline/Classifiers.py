@@ -47,10 +47,14 @@ class SimpleClassifier:
 
         # X = dataset  # Drop the 'category' column for the input features
         # y = X.pop('categories') # Drop the 'category' column for the input features
-        df = pd.DataFrame(dataset)
 
-        X = df['features']  # Drop the 'category' column for the input features
-        y = df['categories']
+        # df = pd.DataFrame(dataset)
+        # X = df['features']  # Drop the 'category' column for the input features
+        # y = df['categories']
+
+        X = dataset['features']  # Drop the 'category' column for the input features
+        y = dataset['categories']
+
         groups = dataset['years']
         random.seed(self._seed)
         kfold = YearsSplit(n_splits=self._n_splits, years=groups)
@@ -75,18 +79,25 @@ class SimpleClassifier:
 
 
         # Get the names of the rows in X_test
-        test_names = df.iloc[X_test.index]['texts']
-        test_years = df.iloc[X_test.index]['years']
-        print("\n\n\nTESTING:")
-        for name, year in zip(test_names, test_years):
-            print("{} - {}".format(year, name))
-        print(":TESTING\n\n\n")
+        # test_names = df.iloc[X_test.index]['texts']
+        # test_years = df.iloc[X_test.index]['years']
+
+        # FIXME#3: Verificar como obter o nome de cada artigo referente ao testing set
+        # test_names = dataset['texts']
+        # test_years = dataset['years']
+        #
+        # print("\n\n\nTESTING:")
+        # for name, year in zip(test_names, test_years):
+        #     print("{} - {}".format(year, name))
+        # print(":TESTING\n\n\n")
 
 
-        model.fit(X_train, y_train)
-        probabilities = model.predict_proba(X_test)
-        scores['probabilities'] = probabilities[:, 1]
-        scores['y_test'] = y_test
+
+        # FIXME#6: Predict at the end only
+        # model.fit(X_train, y_train)
+        # probabilities = model.predict_proba(X_test)
+        # scores['probabilities'] = probabilities[:, 1]
+        # scores['y_test'] = y_test
 
         correct_exclusion_rate = []
         threasholds = []
@@ -95,15 +106,20 @@ class SimpleClassifier:
         exclusion_baseline = []
         missed_baseline = []
 
+        # FIXME#7: Understand how to use Watanabe's split method
+        # for train_index, test_index in kfold.split(X_train, y_train):
 
+        # set up time series cross-validator
+        tscv = TimeSeriesSplit(n_splits=self._n_splits)
 
-        for train_index, test_index in kfold.split(X, y):
-            X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
-            model.fit(X_train, y_train)
-            y_score = model.predict_proba(X_train)[:, 1]
-            precision, recall, threasholds2 = metrics.precision_recall_curve(y_train, y_score)
-            y_score = model.predict_proba(X_test)[:, 1]
+        # FIXME#7: Understand how to use Watanabe's split method
+        for train_index, test_index in tscv.split(X_train, y_train):
+            X_train_index, X_test_index = X_train[train_index], X_train[test_index]
+            y_train_index, y_test_index = y_train[train_index], y_train[test_index]
+            model.fit(X_train_index, y_train_index)
+            y_score_index = model.predict_proba(X_train_index)[:, 1]
+            precision, recall, threasholds2 = metrics.precision_recall_curve(y_train_index, y_score_index)
+            y_score_index = model.predict_proba(X_test_index)[:, 1]
             if (threasholds2[0] > 0.5):
                 threasholds2 = [0.5]
             # matrix = metrics.confusion_matrix(y_test, [0 if i < threasholds2[0] else 1 for i in y_score])
@@ -112,7 +128,7 @@ class SimpleClassifier:
             #     (matrix[0, 0] + matrix[1, 1] + matrix[0, 1] + matrix[1, 0]))
             # missed.append(matrix[1, 0] / (matrix[1, 1] + matrix[1, 0]))
             threasholds.append(threasholds2[0])
-            fscore_threashold.append(metrics.f1_score(y_test, [0 if i < threasholds2[0] else 1 for i in y_score]))
+            fscore_threashold.append(metrics.f1_score(y_test_index, [0 if i < threasholds2[0] else 1 for i in y_score_index]))
 
             # matrix = metrics.confusion_matrix(y_test, [0 if i < 0.5 else 1 for i in y_score])
             # exclusion_baseline.append(
@@ -129,17 +145,18 @@ class SimpleClassifier:
 
         dataset['%s_scores' % self.classifier_name] = scores
 
-        # calculate the mean metrics across all folds
-        mean_accuracy = np.mean(fold_accuracies)
-        mean_precision = np.mean(fold_precisions)
-        mean_recall = np.mean(fold_recalls)
-        mean_f_measure = np.mean(fold_f_measures)
+        # FIXME#4: First start using the lists to storage metrics and then compute mean (until now lists are being unused)
+        # # calculate the mean metrics across all folds
+        # mean_accuracy = np.mean(fold_accuracies)
+        # mean_precision = np.mean(fold_precisions)
+        # mean_recall = np.mean(fold_recalls)
+        # mean_f_measure = np.mean(fold_f_measures)
 
         # TODO: check if it's needed to fit the model again or not
         # fit the final model on the full training set and test it on the testing set
         # model.fit(X_train, y_train)
 
-        # perform the test
+        # FIXME#5: Use predict_proba instead (adjust to read the right column (output will contain two columns))
         y_pred_test = model.predict(X_test)
 
         # compute the metrics for the test set
@@ -154,6 +171,7 @@ class SimpleClassifier:
         print(f"fscore_threashold: {scores['fscore_threashold']}")
         # print(f"exclusion_baseline: {scores['exclusion_baseline']}")
         # print(f"missed_baseline: {scores['missed_baseline']}")
+        print(f"Accuracy: {accuracy_test}")
 
         # Returns the y_test with for the currently model
         return y_pred_test, y_test
@@ -201,19 +219,19 @@ class DecisionTreeClassifier (SimpleClassifier):
         print('===== Hyperparameter tunning  =====')
         model = tree.DecisionTreeClassifier()
 
-        # params = {
-        #     'criterion': ["gini", "entropy"],
-        #     'max_depth': [10, 50, 100, None],
-        #     'min_samples_split': [2, 10, 100],
-        #     'class_weight': [None, 'balanced']
-        # }
-        #
-        # cfl = GridSearchCV(model, params, cv=5, scoring='recall')
-        # cfl.fit(X, y)
-        # for param, value in cfl.best_params_.items():
-        #     print("%s : %s" % (param, value))
+        params = {
+            'criterion': ["gini", "entropy"],
+            'max_depth': [10, 50, 100, None],
+            'min_samples_split': [2, 10, 100],
+            'class_weight': [None, 'balanced']
+        }
+
+        cfl = GridSearchCV(model, params, cv=5, scoring='recall')
+        cfl.fit(X, y)
+        for param, value in cfl.best_params_.items():
+            print("%s : %s" % (param, value))
         model = tree.DecisionTreeClassifier(random_state=self._seed)
-        # model.set_params(**cfl.best_params_)
+        model.set_params(**cfl.best_params_)
         return model
 
 # Extends the SimpleClassifier class to use the SVM classifier with a specific configuration
@@ -225,17 +243,17 @@ class SVMClassifier (SimpleClassifier):
     def get_classifier (self, X, y):
         print('===== SVM Classifier =====')
         print('===== Hyperparameter tunning  =====')
-        # params = {
-        #     'kernel': ['linear', 'rbf'],
-        #     'C': [1, 10, 100],
-        #     'tol': [0.001, 0.1, 1],
-        #     'class_weight': ['balanced', None]
-        # }
-        # model = svm.SVC(random_state=self._seed, probability=True)
-        # cfl = GridSearchCV(model, params, cv=5, scoring='accuracy')
-        # cfl.fit(X, y)
-        # for param, value in cfl.best_params_.items():
-        #     print("%s : %s" % (param, value))
+        params = {
+            'kernel': ['linear', 'rbf'],
+            'C': [1, 10, 100],
+            'tol': [0.001, 0.1, 1],
+            'class_weight': ['balanced', None]
+        }
         model = svm.SVC(random_state=self._seed, probability=True)
-        # model.set_params(**cfl.best_params_)
+        cfl = GridSearchCV(model, params, cv=5, scoring='accuracy')
+        cfl.fit(X, y)
+        for param, value in cfl.best_params_.items():
+            print("%s : %s" % (param, value))
+        model = svm.SVC(random_state=self._seed, probability=True)
+        model.set_params(**cfl.best_params_)
         return model

@@ -16,8 +16,8 @@ class Report:
                  k_fs: int, y_dt: list, y_svm: list, result_file: str=None):
         print(dt_pred)
         print(svm_pred)
-        # self._df_testing = pd.DataFrame.from_dict(testing_dataset)
-        # self._df_training = pd.DataFrame.from_dict(training_dataset)
+        self._df_testing = pd.DataFrame.from_dict(testing_dataset)
+        self._df_training = pd.DataFrame.from_dict(training_dataset)
         if result_file:
             self._result_file_path = os.path.join(os.getcwd(), result_file)
         else:
@@ -30,20 +30,20 @@ class Report:
     @staticmethod
     def get_real_negatives(df: pd.DataFrame, classifier_type: str):
         return df.loc[(df['categories'] == 0) & (df['categories'] == df[classifier_type]),
-                      ['texts', 'categories', classifier_type]]
+                      ['titles', 'categories', classifier_type]]
 
     @staticmethod
     def get_real_positives(df: pd.DataFrame, classifier_type: str):
         return df.loc[(df['categories'] == 1) & (df['categories'] == df[classifier_type]),
-                      ['texts', 'categories', classifier_type]]
+                      ['titles', 'categories', classifier_type]]
 
     @staticmethod
     def get_false_negative(df: pd.DataFrame, classifier_type: str):
-        return df.loc[(df['categories'] == 1) & (df[classifier_type] == 0), ['texts', 'categories', classifier_type]]
+        return df.loc[(df['categories'] == 1) & (df[classifier_type] == 0), ['titles', 'categories', classifier_type]]
 
     @staticmethod
     def get_false_positive(df: pd.DataFrame, classifier_type: str):
-        return df.loc[(df['categories'] == 0) & (df[classifier_type] == 1), ['texts', 'categories', classifier_type]]
+        return df.loc[(df['categories'] == 0) & (df[classifier_type] == 1), ['titles', 'categories', classifier_type]]
 
     @staticmethod
     def analyze_classifier(df: pd.DataFrame, y_ref: list, cls_type:str):
@@ -78,7 +78,7 @@ class Report:
         # TODO: Comment/uncomment just for debug
         # Report.print_detailed_results(df_dt_report, df_svm_report)
 
-        unused_columns = ['features', 'years']
+        unused_columns = ['features', 'years', 'texts']
         self._df_testing.drop(unused_columns, inplace=True, axis=1)
         self._df_testing.rename(columns={'categories': 'Was Selected?'}, inplace=True)
         with codecs.open(self._result_file_path, 'w', encoding='utf-8') as report_file:
