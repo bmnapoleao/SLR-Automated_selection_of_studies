@@ -90,17 +90,37 @@ class BibFormater:
                 return texts_list
 
     @staticmethod
-    def get_dataset_years(dataset):
+    def _get_years(dataset: dict):
         years = dict()
         for i in dataset:
             if i['year'] not in years:
                 years[i['year']] = [i]
             else:
                 years[i['year']].append(i)
-        print('\tTotal number of years: {}'.format(len(years)))
-        for i in years:
-            print('\t\t [{}] - {} bibs'.format(i, len(years[i])))
         return years
+
+    @staticmethod
+    def get_dataset_years(training_set: dict, testing_set: dict):
+        training_years = BibFormater._get_years(training_set)
+        testing_years = BibFormater._get_years(testing_set)
+
+        training_indexes = list(training_years)
+        testing_indexes = list(testing_years)
+
+        print("Training set years:\t\t\t\t\tTesting set years:")
+        print(f"  Total number of years:\t{len(training_indexes)}\t\t", end="")
+        print(f"  Total number of years:\t{len(testing_indexes)}")
+        for i in range(max(len(training_years), len(testing_years))):
+            try:
+                output_train = '[{}] - {} bibs'.format(training_indexes[i], len(training_years[training_indexes[i]]))
+                print(f"\t{output_train}\t\t\t\t\t", end="")
+            except IndexError:
+                print(f" \t\t\t\t\t", end="")
+            try:
+                output_test = '[{}] - {} bibs'.format(testing_indexes[i], len(testing_years[testing_indexes[i]]))
+                print(f"\t{output_test}\t\t\t\t\t")
+            except IndexError:
+                print(f" \t\t\t\t\t")
 
     def execute(self):
         tmp_training_set_included = list()

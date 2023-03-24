@@ -91,7 +91,7 @@ class InputValidator:
             merged_titles = list(titles1 + titles2)
             assert len(merged_titles) == len(unique_titles)
         except AssertionError:
-            print("\n{} sets have {} duplicated entries!".format(dataset_type,len(merged_titles) - len(unique_titles)))
+            print("\n{} sets have {} duplicated entries!".format(dataset_type, len(merged_titles) - len(unique_titles)))
             duplicated_entries = InputValidator.get_duplicates(merged_titles, unique_titles)
             print("The following entries appear both as included and excluded in the {} set:\n".format(dataset_type),
                   duplicated_entries)
@@ -104,12 +104,24 @@ class InputValidator:
 
     # Validates the four files of ../bibs/ and initialize data structures
     def execute(self):
-        # TODO: DUMMY EXPERIMENT
+        # TODO: EXPERIMENT - Change datasets
         # # Using really small dataset
-        file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs-small-set/Testing set - Excluded.bib')
-        file_path_included_testing = os.path.join(os.getcwd(), 'bibs-small-set/Testing set - Included.bib')
-        file_path_excluded_training = os.path.join(os.getcwd(), 'bibs-small-set/Training set - Excluded.bib')
-        file_path_included_training = os.path.join(os.getcwd(), 'bibs-small-set/Training set - Included.bib')
+        # file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs-small-set/Testing set - Excluded.bib')
+        # file_path_included_testing = os.path.join(os.getcwd(), 'bibs-small-set/Testing set - Included.bib')
+        # file_path_excluded_training = os.path.join(os.getcwd(), 'bibs-small-set/Training set - Excluded.bib')
+        # file_path_included_training = os.path.join(os.getcwd(), 'bibs-small-set/Training set - Included.bib')
+
+        # # Using original large dataset (testing set way bigger than training)
+        file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs/Testing set - Excluded.bib')
+        file_path_included_testing = os.path.join(os.getcwd(), 'bibs/Testing set - Included.bib')
+        file_path_excluded_training = os.path.join(os.getcwd(), 'bibs/Training set - Excluded.bib')
+        file_path_included_training = os.path.join(os.getcwd(), 'bibs/Training set - Included.bib')
+
+        # # Using inverted large dataset (training set way bigger than testing)
+        # file_path_excluded_training = os.path.join(os.getcwd(), 'bibs/Testing set - Excluded.bib')
+        # file_path_included_training = os.path.join(os.getcwd(), 'bibs/Testing set - Included.bib')
+        # file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs/Training set - Excluded.bib')
+        # file_path_included_testing = os.path.join(os.getcwd(), 'bibs/Training set - Included.bib')
 
         testing_excluded = self.validate_bib_file(file_path_excluded_testing, 'Testing-Excluded', was_selected=False)
         testing_included = self.validate_bib_file(file_path_included_testing, 'Testing-Included', was_selected=True)

@@ -25,7 +25,7 @@ class TextFilterComposite:
     def apply_filters(self, text_list: list):
         result = []
         for text in text_list:
-            # TODO: Check different configurations
+            # TODO#: Check different configurations
             # See if other tokens should be considered (noted that some examples contained chars like '$')
             tokens = word_tokenize(text['content'])
             filtered_text = self._filter(tokens)
@@ -44,7 +44,7 @@ class LemmatizerFilter:
         self._lemmatizer = WordNetLemmatizer()
 
     def filter (self, tokens):
-        # TODO: Check different configurations
+        # TODO#: Check different configurations
         tags = pos_tag(tokens)
         filtered_result = [
             self._lemmatizer.lemmatize(token[0], pos=token[1][0].lower())
@@ -69,12 +69,18 @@ class TextFilter:
     filtered_dataset = list()
 
     def __init__(self, training_set: list, testing_set: list):
-        self._dataset = training_set + testing_set
+        # self._dataset = training_set + testing_set # TODO#: Single dataset vs Two datasets
+        self.filtered_training_set = None
+        self.filtered_testing_set = None
+        self._training_set = training_set
+        self._testing_set = testing_set
 
     def execute(self):
         print("\t== [Executing TextFilter] Applying text filters ==")
         filters = [LemmatizerFilter(), StopWordsFilter()]
         text_filter_composite = TextFilterComposite(filters)
-        self.filtered_dataset = text_filter_composite.apply_filters(self._dataset)
+        # self.filtered_dataset = text_filter_composite.apply_filters(self._dataset) # TODO#: Single dataset vs Two datasets
+        self.filtered_training_set = text_filter_composite.apply_filters(self._training_set)
+        self.filtered_testing_set = text_filter_composite.apply_filters(self._testing_set)
         print("-----------------------------------------------------")
 
