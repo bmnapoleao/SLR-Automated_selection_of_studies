@@ -8,18 +8,19 @@ from pipeline.Report import Report
 from pipeline.TextFiltering import TextFilter
 from pipeline.BibFormater import BibFormater
 from datetime import datetime
+import sys
 
 if __name__ == '__main__':
 
 
     # # Assert user passed required parameters
-    # try:
-    #     assert len(sys.argv) > 1
-    # except AssertionError:
-    #     print("\nMissing parameter with the number of kFeatures. Please inform in the command line.")
-    #     exit(0)
-    # number_of_features = int(sys.argv[1])
-    number_of_features = 5000 # TODO: max is around 5k
+    try:
+        assert len(sys.argv) > 1
+    except AssertionError:
+        print("\nMissing parameter with the number of kFeatures. Please inform in the command line.")
+        exit(0)
+    number_of_features = int(sys.argv[1])
+    # number_of_features = 5000 # TODO: max is around 5k
 
     # FIXME #2: Check integrity of dataset Title: "PMBOK Guides" seems to be a Book with an abstract field that doens't looks valid
 
