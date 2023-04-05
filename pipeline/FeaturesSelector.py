@@ -1,8 +1,11 @@
 # Author: Marcelo Costalonga
 # (code adapted from: https://github.com/watinha/automatic-selection-slr/tree/master/pipeline/feature_selection)
 
+from TestConfigurationLoader import TestConfiguration
 from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
 import pandas as pd
+
 
 # Class to apply Feature Selection technique over a vectorized entry to determinate the best kN features
 class FeaturesSelector:
@@ -62,13 +65,24 @@ class FeaturesSelector:
         y_train = training_dataset['categories']
         X_test = testing_dataset['features']
 
+
+        # Loading dataset configuration
+        used_score_method = TestConfiguration().get_score_method_type()
+
         # FIXME #3: Check different configurations for SelectKBest (maybe chi2? SelectKBest(chi2, k=1000))
         # FIXME #4: This could improve the time, 'fs.fit_transform' its a huge bottle neck that takes a lot of time to process
-        fs = SelectKBest(self._score, k=self._k)  # Initialze selector
 
-        # OBS: Two options to apply methods feature_selection / fit_transform:
-        # 1) Apply BEFORE splitting data into training and testing
-        # dataset['features'] = fs.fit_transform(X, y) # TODO#: Single dataset vs Two datasets
+        # Initialze selector
+        if used_score_method == 0:
+            # Default affinity method used
+            fs = SelectKBest(self._score, k=self._k)
+
+        elif used_score_method == 1: # Chi2
+            fs = SelectKBest(chi2, k=self._k)
+        else:
+            print("\n[ERROR-EnvFile] Invalid feature selection score method option")
+            raise Exception
+
 
         # Fit using only the training set
         # FIXME#11!: Add check to verify if K is <= to the total number of features (if it is read again the input)

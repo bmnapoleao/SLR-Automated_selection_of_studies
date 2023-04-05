@@ -5,8 +5,11 @@ import random
 import numpy as np
 from sklearn import tree, metrics, svm
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
 from sklearn.model_selection import cross_validate, GridSearchCV, TimeSeriesSplit, train_test_split
-from sklearn.metrics import classification_report
+from sklearn.metrics import precision_score, recall_score, f1_score
+from TestConfigurationLoader import TestConfiguration
+
 
 # Class to split content of training set into multiple folds, grouping them by a specific range of years.
 class YearsSplit:
@@ -32,22 +35,18 @@ class YearsSplit:
             previous = test_index
             yield train, test
 
+
 # Simple model of an ML classifier (parent class used for other classifiers).
 # Trains the model applying the holdout technique, using the training dataset and reports its results
 class SimpleClassifier:
-    def __init__(self, seed, n_splits=5):
+    test_scores = dict()
+
+    def __init__(self, seed, n_splits=5, parameters_config=None):
         self._seed = seed
         self._n_splits = n_splits
+        self._config_used = parameters_config
 
     def execute(self, training_dataset: dict, testing_dataset: dict):
-        # X = dataset  # Drop the 'category' column for the input features
-        # y = X.pop('categories') # Drop the 'category' column for the input features
-
-        # df = pd.DataFrame(dataset)
-        # X = df['features']  # Drop the 'category' column for the input features
-        # y = df['categories']
-
-        # TODO#: Single dataset vs Two datasets
         X_train = training_dataset['features']
         y_train = training_dataset['categories']
 
@@ -61,107 +60,100 @@ class SimpleClassifier:
         # Get classifier model (DT or SVM)
         model = self.get_classifier(X_train, y_train)
 
-        scores = cross_validate(model, X_train, y_train, cv=kfold, scoring=['f1_macro', 'precision_macro', 'recall_macro'])
-        print("OUR APPROACH F-measure: %s on average and %s SD" %
-              (scores['test_f1_macro'].mean(), scores['test_f1_macro'].std()))
-        print("OUR APPROACH Precision: %s on average and %s SD" %
-              (scores['test_precision_macro'].mean(), scores['test_precision_macro'].std()))
-        print("OUR APPROACH Recall: %s on average and %s SD" %
-              (scores['test_recall_macro'].mean(), scores['test_recall_macro'].std()))
-        print("-----------------------------------------------------------\n")
+        # Loading dataset configuration
+        used_cross_val_method = TestConfiguration().get_cross_val_type()
 
-        # initialize a list to store the metrics for each fold
-        fold_accuracies = []
-        fold_precisions = []
-        fold_recalls = []
-        fold_f_measures = []
+        cross_val_scores = dict()
 
-        # X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42) # TODO#: Single dataset vs Two datasets
+        # kfold cross validation (splited by years)
+        if used_cross_val_method == 0:
+            # FIXME#22: Start keeping track of performance from cross validation
+            # scores = cross_validate(model, X_train, y_train, cv=kfold, scoring=['f1_macro', 'precision_macro', 'recall_macro'])
+            cross_val_scores = cross_validate(model, X_train, y_train, cv=kfold,
+                                              scoring=['f1_macro', 'precision_macro', 'recall_macro'])
+            print("OUR APPROACH F-measure: %s on average and %s SD" %
+                  (cross_val_scores['test_f1_macro'].mean(), cross_val_scores['test_f1_macro'].std()))
+            print("OUR APPROACH Precision: %s on average and %s SD" %
+                  (cross_val_scores['test_precision_macro'].mean(), cross_val_scores['test_precision_macro'].std()))
+            print("OUR APPROACH Recall: %s on average and %s SD" %
+                  (cross_val_scores['test_recall_macro'].mean(), cross_val_scores['test_recall_macro'].std()))
+            print("-----------------------------------------------------------\n")
 
-        # FIXME#6: Predict at the end only (or use it before to compute ROC and other metrics)
-        # model.fit(X_train, y_train)
-        # probabilities = model.predict_proba(X_test)
-        # scores['probabilities'] = probabilities[:, 1]
-        # scores['y_test'] = y_test
+            model.fit(X_train, y_train)
 
-        correct_exclusion_rate = []
-        threasholds = []
-        missed = []
-        fscore_threashold = []
-        exclusion_baseline = []
-        missed_baseline = []
+        # time series cross validation
+        elif used_cross_val_method == 1:
+            threasholds = []
+            fscore_threashold = []
 
-        # FIXME#7: Understand if it makes sense to use YearsSplit method
-        # for train_index, test_index in kfold.split(X_train, y_train):
+            # set up time series cross-validator
+            tscv = TimeSeriesSplit(n_splits=self._n_splits)
 
-        # set up time series cross-validator
-        tscv = TimeSeriesSplit(n_splits=self._n_splits)
+            # FIXME#7: Understand if it makes sense to use YearsSplit method
+            for train_index, test_index in tscv.split(X_train, y_train):
+                X_train_index, X_test_index = X_train[train_index], X_train[test_index]
+                y_train_index, y_test_index = y_train[train_index], y_train[test_index]
+                model.fit(X_train_index, y_train_index)
+                y_score_index = model.predict_proba(X_train_index)[:, 1]
+                precision, recall, threasholds2 = metrics.precision_recall_curve(y_train_index, y_score_index)
+                y_score_index = model.predict_proba(X_test_index)[:, 1]
+                if (threasholds2[0] > 0.5):
+                    threasholds2 = [0.5]
 
-        # FIXME#7: Understand if it makes sense to use YearsSplit method
-        for train_index, test_index in tscv.split(X_train, y_train):
-            X_train_index, X_test_index = X_train[train_index], X_train[test_index]
-            y_train_index, y_test_index = y_train[train_index], y_train[test_index]
-            model.fit(X_train_index, y_train_index)
-            y_score_index = model.predict_proba(X_train_index)[:, 1]
-            precision, recall, threasholds2 = metrics.precision_recall_curve(y_train_index, y_score_index)
-            y_score_index = model.predict_proba(X_test_index)[:, 1]
-            if (threasholds2[0] > 0.5):
-                threasholds2 = [0.5]
+                threasholds.append(threasholds2[0])
+                fscore_threashold.append(metrics.f1_score(
+                    y_test_index, [0 if i < threasholds2[0] else 1 for i in y_score_index]))
 
-            # FIXME#15: ValueError: Found input variables with inconsistent numbers of samples: [15, 5]
-            # matrix = metrics.confusion_matrix(y_test, [0 if i < threasholds2[0] else 1 for i in y_score_index])
-            # correct_exclusion_rate.append(
-            #     matrix[0, 0] /
-            #     (matrix[0, 0] + matrix[1, 1] + matrix[0, 1] + matrix[1, 0]))
-            # missed.append(matrix[1, 0] / (matrix[1, 1] + matrix[1, 0]))
+            cross_val_scores['threasholds_cros_val?'] = threasholds
+            cross_val_scores['fscore_threashold_cros_val?'] = fscore_threashold
+            # scores['exclusion_rate'] = correct_exclusion_rate
+            # scores['missed'] = missed
+            # scores['exclusion_baseline'] = exclusion_baseline
+            # scores['missed_baseline'] = missed_baseline
 
-            threasholds.append(threasholds2[0])
-            fscore_threashold.append(metrics.f1_score(
-                y_test_index, [0 if i < threasholds2[0] else 1 for i in y_score_index]))
+            # Print the results
+            # print(f"exclusion_rate: {scores['exclusion_rate']}")
+            # print(f"missed: {scores['missed']}")
+            # print(f"exclusion_baseline: {scores['exclusion_baseline']}")
+            # print(f"missed_baseline: {scores['missed_baseline']}")
+            print(f"threasholds: {cross_val_scores['threasholds_cros_val?']}")
+            print(f"fscore_threashold: {cross_val_scores['fscore_threashold_cros_val?']}")
 
-            # FIXME#15: ValueError: Found input variables with inconsistent numbers of samples: [15, 5]
-            # matrix = metrics.confusion_matrix(y_test, [0 if i < 0.5 else 1 for i in y_score_index])
-            # exclusion_baseline.append(
-            #     matrix[0, 0] /
-            #     (matrix[0, 0] + matrix[1, 1] + matrix[0, 1] + matrix[1, 0]))
-            # missed_baseline.append(matrix[1, 0] / (matrix[1, 1] + matrix[1, 0]))
+        else:
+            print("\n[ERROR-EnvFile] Invalid cross validation method")
+            raise Exception
 
-        # scores['exclusion_rate'] = correct_exclusion_rate
-        scores['threasholds'] = threasholds
-        # scores['missed'] = missed
-        scores['fscore_threashold'] = fscore_threashold
-        # scores['exclusion_baseline'] = exclusion_baseline
-        # scores['missed_baseline'] = missed_baseline
+        # Perform prediction test
+        predictions = dict()
+        y_pred = model.predict(X_test)
 
-        # FIXME#4: First start using the lists to storage metrics and then compute mean (until now lists are being unused)
-        # # calculate the mean metrics across all folds
-        # mean_accuracy = np.mean(fold_accuracies)
-        # mean_precision = np.mean(fold_precisions)
-        # mean_recall = np.mean(fold_recalls)
-        # mean_f_measure = np.mean(fold_f_measures)
+        predictions['y_pred'] = y_pred
 
-        # FIXME#5: Use predict_proba instead (adjust to read the right column (output will contain two columns))
-        y_pred_test = model.predict(X_test)
+        # FIXME#24: Understand why DT model predict_proba always 0 or 1
+        # OBS: Problema de 0 1 da DT: https://stackoverflow.com/questions/48219986/decisiontreeclassifier-predict-proba-returns-0-or-1
+        predictions['y_pred_proba'] = model.predict_proba(X_test)[:, 1]  # Only the prob of being 1 (selected)
 
         # compute the metrics for the test set
-        accuracy_test = accuracy_score(y_test, y_pred_test)
-        precision_test, recall_test, f_measure_test, _ = classification_report(y_test, y_pred_test, output_dict=True)[
-            'weighted avg']
+        scores = dict()
+        scores['accuracy'] = accuracy_score(y_test, y_pred)
+        scores['precision'] = precision_score(y_test, y_pred)
+        scores['recall'] = recall_score(y_test, y_pred)
+        scores['F1'] = f1_score(y_test, y_pred)
 
-        # print the results
-        # print(f"exclusion_rate: {scores['exclusion_rate']}")
-        print(f"threasholds: {scores['threasholds']}")
-        # print(f"missed: {scores['missed']}")
-        print(f"fscore_threashold: {scores['fscore_threashold']}")
-        # print(f"exclusion_baseline: {scores['exclusion_baseline']}")
-        # print(f"missed_baseline: {scores['missed_baseline']}")
-        print(f"Accuracy: {accuracy_test}")
+        # scores['conf_matrix'] = confusion_matrix(y_test, y_pred_test) # FIXME#14: Storage and report confusion matrix in another way
+
+        # Print test scores
+        print('Classifier Test Metrics:')
+        print(f"Accuracy: {scores['accuracy']}")
+        print(f"Precision: {scores['precision']}")
+        print(f"Recall: {scores['recall']}")
+        print(f"F1: {scores['F1']}")
 
         # FIXME#14: Investigate error message: "UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
         #   _warn_prf(average, modifier, msg_start, len(result))" OBS: only shows on pycharm, executing script from terminal does not display this message
 
         # Returns the y_test with for the currently model
-        return y_pred_test, y_test, scores
+        return predictions, scores
     print("-------------------------------------------------------------------------------------------------------\n\n")
 
 
@@ -173,7 +165,7 @@ class DecisionTreeClassifier (SimpleClassifier):
         self._criterion = criterion
 
     def get_classifier (self, X, y):
-        print('\n\n===== Decision Tree Classifier =====')
+        print('\n\n===== Decision Tree Classifier ===== \n\t n_splits=', self._n_splits)
         print('===== Hyperparameter tunning  =====')
         model = tree.DecisionTreeClassifier()
 
@@ -193,6 +185,7 @@ class DecisionTreeClassifier (SimpleClassifier):
         model.set_params(**cfl.best_params_)
         return model
 
+
 # Extends the SimpleClassifier class to use the SVM classifier with a specific configuration
 class SVMClassifier (SimpleClassifier):
     def __init__ (self, seed=42, n_splits=3):
@@ -200,20 +193,20 @@ class SVMClassifier (SimpleClassifier):
         self.classifier_name = 'svm'
 
     def get_classifier (self, X, y):
-        print('\n\n===== SVM Classifier =====')
+        print('\n\n===== SVM Classifier ===== \n\t n_splits=', self._n_splits)
         print('===== Hyperparameter tunning  =====')
         params = {
             'kernel': ['linear', 'rbf'],
-            'C': [1, 10, 100],
+            'C': [1, 10, 100], # FIXME#23: verificar (range 0.1 ate 2 ou 4)
             'tol': [0.001, 0.1, 1],
             'class_weight': ['balanced', None]
         }
         model = svm.SVC(random_state=self._seed, probability=True)
-        cfl = GridSearchCV(model, params, cv=5, scoring='accuracy')
+        cfl = GridSearchCV(model, params, cv=5, scoring='accuracy')  # FIXME#23: check scoring set ('recall'?)
         cfl.fit(X, y)
         for param, value in cfl.best_params_.items():
             print("%s : %s" % (param, value))
         print("-----------------------------------------------\n\n")
-        model = svm.SVC(random_state=self._seed, probability=True)
+        # model = svm.SVC(random_state=self._seed, probability=True)
         model.set_params(**cfl.best_params_)
         return model

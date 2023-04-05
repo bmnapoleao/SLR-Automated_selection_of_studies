@@ -1,8 +1,11 @@
 # Author: Marcelo Costalonga
 
-import codecs, bibtexparser
 import os
+import codecs
+import bibtexparser
 from copy import deepcopy
+from TestConfigurationLoader import TestConfiguration
+
 
 # Class to validate bib files of the Training and Testing sets, checking missing keys or duplicated entries
 class InputValidator:
@@ -104,24 +107,36 @@ class InputValidator:
 
     # Validates the four files of ../bibs/ and initialize data structures
     def execute(self):
+        # Loading dataset configuration
+        dataset_option = TestConfiguration().get_dataset_type()
+
         # TODO: EXPERIMENT - Change datasets
-        # # Using really small dataset
-        # file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs-small-set/Testing set - Excluded.bib')
-        # file_path_included_testing = os.path.join(os.getcwd(), 'bibs-small-set/Testing set - Included.bib')
-        # file_path_excluded_training = os.path.join(os.getcwd(), 'bibs-small-set/Training set - Excluded.bib')
-        # file_path_included_training = os.path.join(os.getcwd(), 'bibs-small-set/Training set - Included.bib')
+        if dataset_option == 0:
+            # # Using really small dataset
+            print('\n\tUSING SMALL DATASET')
+            file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs-small-set/Testing set - Excluded.bib')
+            file_path_included_testing = os.path.join(os.getcwd(), 'bibs-small-set/Testing set - Included.bib')
+            file_path_excluded_training = os.path.join(os.getcwd(), 'bibs-small-set/Training set - Excluded.bib')
+            file_path_included_training = os.path.join(os.getcwd(), 'bibs-small-set/Training set - Included.bib')
 
-        # # Using original large dataset (testing set way bigger than training)
-        file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs/Testing set - Excluded.bib')
-        file_path_included_testing = os.path.join(os.getcwd(), 'bibs/Testing set - Included.bib')
-        file_path_excluded_training = os.path.join(os.getcwd(), 'bibs/Training set - Excluded.bib')
-        file_path_included_training = os.path.join(os.getcwd(), 'bibs/Training set - Included.bib')
+        elif dataset_option == 1:
+            # # Using original large dataset (testing set way bigger than training)
+            print('\n\tUSING ORIGINAL DATASET')
+            file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs/Testing set - Excluded.bib')
+            file_path_included_testing = os.path.join(os.getcwd(), 'bibs/Testing set - Included.bib')
+            file_path_excluded_training = os.path.join(os.getcwd(), 'bibs/Training set - Excluded.bib')
+            file_path_included_training = os.path.join(os.getcwd(), 'bibs/Training set - Included.bib')
 
-        # # Using inverted large dataset (training set way bigger than testing)
-        # file_path_excluded_training = os.path.join(os.getcwd(), 'bibs/Testing set - Excluded.bib')
-        # file_path_included_training = os.path.join(os.getcwd(), 'bibs/Testing set - Included.bib')
-        # file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs/Training set - Excluded.bib')
-        # file_path_included_testing = os.path.join(os.getcwd(), 'bibs/Training set - Included.bib')
+        elif dataset_option == 2:
+            # # Using inverted large dataset (training set way bigger than testing)
+            print('\n\tUSING INTERVETED DATASET')
+            file_path_excluded_training = os.path.join(os.getcwd(), 'bibs/Testing set - Excluded.bib')
+            file_path_included_training = os.path.join(os.getcwd(), 'bibs/Testing set - Included.bib')
+            file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs/Training set - Excluded.bib')
+            file_path_included_testing = os.path.join(os.getcwd(), 'bibs/Training set - Included.bib')
+        else:
+            print("\n[ERROR-EnvFile] Invalid dataset option")
+            raise Exception
 
         testing_excluded = self.validate_bib_file(file_path_excluded_testing, 'Testing-Excluded', was_selected=False)
         testing_included = self.validate_bib_file(file_path_included_testing, 'Testing-Included', was_selected=True)
@@ -135,5 +150,11 @@ class InputValidator:
             self.training_set = training_excluded + training_included
             self.training_set = sorted(self.training_set, key=lambda d: d['year'])
         self.validate_datasets(self.testing_set, self.training_set, 'Training and Testing Sets')
+
+        try:
+            assert self.is_valid() == True
+        except AssertionError:
+            print("\nPlease correct the errors found on the bib files before executing the program again.")
+            exit(0)
         print("-----------------------------------------------------")
 

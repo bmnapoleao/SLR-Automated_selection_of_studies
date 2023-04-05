@@ -64,12 +64,14 @@ class DatasetGenerator:
         # FIXME #1: Check different configurations for this method (currently using TfidfVectorizer with this config)
         # TODO#1: Verificar configurações do 'TfidfVectorizer' (stop_words='english' / 'analyzer' == default...)
         # Configurar min_df e max_df para selecionar palavras mais relevantes
-        tf_idf_vectorizer = TextVectorizer(TfidfVectorizer(ngram_range=(1, 3), use_idf=True))
+        tf_idf_vectorizer = TextVectorizer(TfidfVectorizer(ngram_range=(1, 3), use_idf=True)) # FIXME#20: TF_IDF congi
         tf_idf_vectorizer.extract_features(training_texts=training_dataset['texts'],
                                            testing_texts=testing_dataset['texts'])
 
         training_dataset['features'] = tf_idf_vectorizer.training_features
         testing_dataset['features'] = tf_idf_vectorizer.testing_features
+        print('\nTotal number of features for TRAINING set =', training_dataset['features'].shape[1])
+        print('Total number of features for TESTING set =', testing_dataset['features'].shape[1], end='\n')
 
         self.training_dataset = training_dataset
         self.testing_dataset = testing_dataset
