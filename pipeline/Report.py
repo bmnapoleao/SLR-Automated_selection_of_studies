@@ -20,13 +20,13 @@ class Report:
     _y_test: list
     output_path = os.path.join(os.getcwd(), 'output')
 
-    def __init__(self, training_dataset: dict, testing_dataset: dict, dt_pred: dict, svm_pred: dict,
-                 k_fs: int, y_true: list, scores: dict, result_file: str=None):
-        self._df_training = pd.DataFrame.from_dict(training_dataset)
-        self._df_testing = pd.DataFrame.from_dict(testing_dataset)
+    def __init__(self, training_set: dict, testing_set: dict, predictions: dict, scores: dict,
+                 k_fs: int, y_true: list, result_file: str=None):
+        self._df_training = pd.DataFrame.from_dict(training_set)
+        self._df_testing = pd.DataFrame.from_dict(testing_set)
         self._set_result_file_path(result_file, k_fs)
-        self._set_predictions(dt_pred, svm_pred)
-        self._set_scores(scores)
+        self._format_predictions(predictions)
+        self._format_scores(scores)
         self._verify_output_dir()
         self._kfs = k_fs
         self._y_test = y_true
@@ -42,30 +42,41 @@ class Report:
         else: # If no file_path is passed, use default format
             now = datetime.now()
             month_day, hour_min = now.strftime("%b_%d,%Hh%Mm").lower().split(',')
-            result_file = 'output/{}/k{}-report-{}.csv'.format(month_day, k_fs, hour_min)
+            result_file = 'output/{}/k{}-report-{}.xlsx'.format(month_day, k_fs, hour_min)
             self.result_file_path = os.path.join(os.getcwd(), result_file)
-        self.result_xlsx_file = self.result_file_path.rsplit('.', 1)[0] + '.xlsx'
 
-    def _set_predictions(self, dt_pred: dict, svm_pred: dict):
-        self._df_testing['DT_pred'] = dt_pred['y_pred']
-        self._df_testing['SVM_pred'] = svm_pred['y_pred']
+    def _format_predictions(self, predictions: dict):
+        unused_columns = ['features', 'years', 'texts']
+        self._test_pred = self._df_testing.copy()
+        self._test_pred.drop(unused_columns, inplace=True, axis=1)
+        self._test_pred.rename(columns={'titles': 'Titles'}, inplace=True)
+        self._test_pred.rename(columns={'categories': 'Was Selected?'}, inplace=True)
+        self._test_proba = self._test_pred.copy()
 
-        test_proba = dict() # FIXME#20: Improve this object
-        test_proba['Titles'] = self._df_testing['titles']
-        test_proba['Was Selected?'] = self._df_testing['categories']
-        test_proba['DT_proba'] = dt_pred['y_pred_proba']
-        test_proba['SVM_proba'] = svm_pred['y_pred_proba']
-        self._test_proba = pd.DataFrame.from_dict(test_proba)
+        for clsf in predictions:
+            label = clsf.upper()
+            # FIXME#27: Improve this. The object 'self._df_testing' is only being used for false positives and false negatives later
+            self._df_testing[label + '_pred'] = predictions[clsf]['y_pred']
+            self._test_pred[label + '_pred'] = predictions[clsf]['y_pred']
+            self._test_proba[label + '_proba'] = predictions[clsf]['y_proba']
 
-    def _set_scores(self, scores: dict):
+    def _format_scores(self, scores: dict):
         # TODO: Improve this so we can use others classifiers without the need to specify the names of each one
+        index = list()
+        table = list()
         try:
-            self._dt_scores = pd.DataFrame.from_dict(scores['dt_scores'])
-            self._svm_scores = pd.DataFrame.from_dict(scores['svm_scores'])
+            for clsf_label in scores:
+                index.append(clsf_label.split('_scores')[0].upper())
+                table.append(scores[clsf_label])
+            self._scores = pd.DataFrame(table)
+            self._scores.index = index
         except ValueError:
             # If all values are scalar will raise this error
-            self._dt_scores = pd.DataFrame.from_dict([scores['dt_scores']])
-            self._svm_scores = pd.DataFrame.from_dict([scores['svm_scores']])
+            for clsf_label in scores:
+                index.append(clsf_label.split('_scores')[0].upper())
+                table.append([scores[clsf_label]])
+            self._scores = pd.DataFrame(table)
+            self._scores.index = index
         except Exception:
             raise Exception
 
@@ -142,14 +153,6 @@ class Report:
         # TODO: Comment/uncomment just for debug
         # Report.print_detailed_results(df_dt_report, df_svm_report)
 
-        unused_columns = ['features', 'years', 'texts']
-        self._df_testing.drop(unused_columns, inplace=True, axis=1)
-        self._df_testing.rename(columns={'categories': 'Was Selected?'}, inplace=True)
-
-        # Write results in csv file
-        # with codecs.open(self.result_file_path, 'w', encoding='utf-8') as report_file:
-        #     self._df_testing.to_csv(report_file, index=False)
-
         # Write more details in xlsx file
         self.create_multi_sheet_xlsx(start, end)
 
@@ -162,11 +165,10 @@ class Report:
         return datetime.strptime(fmt.format(**time_obj), "%H:%M:%S").strftime("%Hh:%Mm:%Ss")
 
     def create_multi_sheet_xlsx(self, start: datetime, end: datetime):
-        with pd.ExcelWriter(self.result_xlsx_file) as writer:
-            self._df_testing.to_excel(writer, sheet_name='Classifiers Predictions')
+        with pd.ExcelWriter(self.result_file_path) as writer:
+            self._test_pred.to_excel(writer, sheet_name='Classifiers Predictions')
             self._test_proba.to_excel(writer, sheet_name='Classifiers Probabilities')
-            self._dt_scores.to_excel(writer, sheet_name='DT Scores')
-            self._svm_scores.to_excel(writer, sheet_name='SVM Scores')
+            self._scores.to_excel(writer, sheet_name='Classifiers Scores')
 
             # FIXME#11: Add other relevant metrics on this sheet, besides total time execution (e.g. CPU, RAM, MEMORY...)
             # Add specs information

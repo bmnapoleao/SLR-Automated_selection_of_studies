@@ -3,17 +3,26 @@
 
 import random
 import numpy as np
-from sklearn import tree, metrics, svm
+from sklearn import metrics
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
-from sklearn.model_selection import cross_validate, GridSearchCV, TimeSeriesSplit, train_test_split
 from sklearn.metrics import precision_score, recall_score, f1_score
 from TestConfigurationLoader import TestConfiguration
+
+# Classifiers
+from sklearn.tree import DecisionTreeClassifier as SklearnDecisionTreeClassifier
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier as SklearnRandomForestClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_validate, GridSearchCV, TimeSeriesSplit, train_test_split
 
 
 # Class to split content of training set into multiple folds, grouping them by a specific range of years.
 class YearsSplit:
-    def __init__ (self, n_splits=4, years=[]):
+    def __init__(self, n_splits=4, years=[]):
         self._n_splits = n_splits
         self._years = years
         self._test_indexes = []
@@ -46,18 +55,14 @@ class SimpleClassifier:
         self._n_splits = n_splits
         self._config_used = parameters_config
 
-    def execute(self, training_dataset: dict, testing_dataset: dict):
-        X_train = training_dataset['features']
-        y_train = training_dataset['categories']
+    def execute(self, training_set: dict, testing_set: dict):
+        X_train = training_set['features']
+        y_train = training_set['categories']
 
-        X_test = testing_dataset['features']
-        y_test = testing_dataset['categories']
+        X_test = testing_set['features']
+        y_test = testing_set['categories']
 
-        # FIXME#10: If we're going to use this approach should it be all years (including testing)?
-        groups = training_dataset['years']
-        random.seed(self._seed)
-        kfold = YearsSplit(n_splits=self._n_splits, years=groups)
-        # Get classifier model (DT or SVM)
+        # Get classifier model
         model = self.get_classifier(X_train, y_train)
 
         # Loading dataset configuration
@@ -67,6 +72,11 @@ class SimpleClassifier:
 
         # kfold cross validation (splited by years)
         if used_cross_val_method == 0:
+            # FIXME#10: If we're going to use this approach should it be all years (including testing)?
+            groups = training_set['years']
+            random.seed(self._seed)
+            kfold = YearsSplit(n_splits=self._n_splits, years=groups)
+
             # FIXME#22: Start keeping track of performance from cross validation
             # scores = cross_validate(model, X_train, y_train, cv=kfold, scoring=['f1_macro', 'precision_macro', 'recall_macro'])
             cross_val_scores = cross_validate(model, X_train, y_train, cv=kfold,
@@ -130,8 +140,8 @@ class SimpleClassifier:
         predictions['y_pred'] = y_pred
 
         # FIXME#24: Understand why DT model predict_proba always 0 or 1
-        # OBS: Problema de 0 1 da DT: https://stackoverflow.com/questions/48219986/decisiontreeclassifier-predict-proba-returns-0-or-1
-        predictions['y_pred_proba'] = model.predict_proba(X_test)[:, 1]  # Only the prob of being 1 (selected)
+        #   OBS: Problema de 0 1 da DT: https://stackoverflow.com/questions/48219986/decisiontreeclassifier-predict-proba-returns-0-or-1
+        predictions['y_proba'] = model.predict_proba(X_test)[:, 1]  # Only the prob of being 1 (selected)
 
         # compute the metrics for the test set
         scores = dict()
@@ -159,15 +169,15 @@ class SimpleClassifier:
 
 # Extends the SimpleClassifier class to use the DecisionTree classifier with a specific configuration
 class DecisionTreeClassifier (SimpleClassifier):
-    def __init__ (self, seed=42, criterion='entropy', n_splits=5):
+    def __init__(self, seed=42, criterion='entropy', n_splits=5):
         SimpleClassifier.__init__(self, seed, n_splits)
         self.classifier_name = 'decision_tree'
         self._criterion = criterion
 
-    def get_classifier (self, X, y):
+    def get_classifier(self, X, y):
         print('\n\n===== Decision Tree Classifier ===== \n\t n_splits=', self._n_splits)
-        print('===== Hyperparameter tunning  =====')
-        model = tree.DecisionTreeClassifier()
+        print('===== Hyperparameter tuning (best params) =====')
+        model = SklearnDecisionTreeClassifier()
 
         params = {
             'criterion': ["gini", "entropy"],
@@ -181,32 +191,118 @@ class DecisionTreeClassifier (SimpleClassifier):
         for param, value in cfl.best_params_.items():
             print("%s : %s" % (param, value))
         print("-----------------------------------------------\n\n")
-        model = tree.DecisionTreeClassifier(random_state=self._seed)
+        model = SklearnDecisionTreeClassifier(random_state=self._seed)
         model.set_params(**cfl.best_params_)
         return model
 
 
 # Extends the SimpleClassifier class to use the SVM classifier with a specific configuration
 class SVMClassifier (SimpleClassifier):
-    def __init__ (self, seed=42, n_splits=3):
+    def __init__(self, seed=42, n_splits=3):
         SimpleClassifier.__init__(self, seed, n_splits=n_splits)
         self.classifier_name = 'svm'
 
-    def get_classifier (self, X, y):
+    def get_classifier(self, X, y):
         print('\n\n===== SVM Classifier ===== \n\t n_splits=', self._n_splits)
-        print('===== Hyperparameter tunning  =====')
+        print('===== Hyperparameter tuning (best params) =====')
         params = {
-            'kernel': ['linear', 'rbf'],
-            'C': [1, 10, 100], # FIXME#23: verificar (range 0.1 ate 2 ou 4)
+            'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
+            'C': [0.001, 0.005, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0, 1.3, 1.5, 1.7, 2.0, 2.4, 2.6, 2.8, 3.0, 3.3, 3.5, 3.7, 4.0],
             'tol': [0.001, 0.1, 1],
             'class_weight': ['balanced', None]
         }
-        model = svm.SVC(random_state=self._seed, probability=True)
-        cfl = GridSearchCV(model, params, cv=5, scoring='accuracy')  # FIXME#23: check scoring set ('recall'?)
+        model = SVC(random_state=self._seed, probability=True)
+        cfl = GridSearchCV(model, params, cv=5, scoring='accuracy') 
         cfl.fit(X, y)
         for param, value in cfl.best_params_.items():
             print("%s : %s" % (param, value))
         print("-----------------------------------------------\n\n")
-        # model = svm.SVC(random_state=self._seed, probability=True)
+        model = SVC(random_state=self._seed, probability=True)
         model.set_params(**cfl.best_params_)
         return model
+
+
+# Extends the SimpleClassifier class to use the KNeighbors classifier with a specific configuration
+class KNNClassifier (SimpleClassifier):
+    def __init__(self, seed=42, n_splits=3):
+        SimpleClassifier.__init__(self, seed, n_splits=n_splits)
+        self.classifier_name = 'knn'
+
+    def get_classifier(self, X, y):
+        print('\n\n===== KNN Classifier ===== \n\t n_splits=', self._n_splits)
+        print('===== Hyperparameter tuning (best params) =====')
+        params = {
+            'n_neighbors': [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21],
+            'metric': ['euclidean', 'manhattan', 'minkowski'],
+            'weights': ['uniform', 'distance'],
+            'algorithm': ['auto', 'ball_tree', 'kd_tree'],
+        }
+        model = KNeighborsClassifier()
+        cfl = GridSearchCV(model, params, cv=5, scoring='accuracy') 
+        cfl.fit(X, y)
+        for param, value in cfl.best_params_.items():
+            print("%s : %s" % (param, value))
+        print("-----------------------------------------------\n\n")
+        model = KNeighborsClassifier()
+        model.set_params(**cfl.best_params_)
+        return model
+
+
+class RandomForestClassifier (SimpleClassifier):
+    def __init__(self, seed=42, n_splits=5):
+        SimpleClassifier.__init__(self, seed, n_splits)
+        self.classifier_name = 'random_forest'
+
+    def get_classifier(self, X, y):
+        print('\n\n===== Random Forest Classifier ===== \n\t n_splits=', self._n_splits)
+        print('===== Hyperparameter tuning (best params) =====')
+        model = SklearnRandomForestClassifier(random_state=self._seed)
+        params = {
+            'n_estimators': [5, 10, 100],
+            'criterion': ["gini", "entropy"],
+            'max_depth': [10, 50, 100, None],
+            'min_samples_split': [2, 10, 100],
+            'class_weight': [None, 'balanced']
+        }
+        cfl = GridSearchCV(model, params, cv=5, scoring='accuracy')  
+        cfl.fit(X, y)
+        for param, value in cfl.best_params_.items():
+            print("\t%s : %s" % (param, value))
+
+        model = SklearnRandomForestClassifier(random_state=self._seed)
+        model.set_params(**cfl.best_params_)
+        return model
+
+
+# Extends the SimpleClassifier class to use the Gaussian Naive Bayes classifier with a specific configuration
+class GaussianNaiveBayesClassifier (SimpleClassifier):
+    def __init__(self, seed=42, n_splits=3):
+        SimpleClassifier.__init__(self, seed, n_splits=n_splits)
+        self.classifier_name = 'gaussianNB'
+
+    def get_classifier(self, X, y):
+        print('\n\n===== GaussianNB Classifier =====')
+        model = GaussianNB()
+        return model
+
+
+# Extends the SimpleClassifier class to use the Linear Regression classifier with a specific configuration
+class LinearRegressionClassifier (SimpleClassifier):
+    def __init__(self, seed):
+        SimpleClassifier.__init__(self, seed)
+        self.classifier_name = 'linear_reg'
+
+    def get_classifier(self, X, y):
+        print('===== Linear Reg Classifier =====')
+        return LinearRegression()
+
+
+# Extends the SimpleClassifier class to use the Logistic Regression classifier with a specific configuration
+class LogisticRegressionClassifier (SimpleClassifier):
+    def __init__(self, seed):
+        SimpleClassifier.__init__(self, seed)
+        self.classifier_name = 'logistic_reg'
+
+    def get_classifier(self, X, y):
+        print('===== Logistic Reg Classifier =====')
+        return LogisticRegression(random_state=self._seed)
