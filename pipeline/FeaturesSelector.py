@@ -3,7 +3,7 @@
 
 from TestConfigurationLoader import TestConfiguration
 from sklearn.feature_selection import SelectKBest
-from sklearn.feature_selection import chi2
+from sklearn.feature_selection import chi2, f_classif, r_regression
 import pandas as pd
 
 
@@ -76,9 +76,12 @@ class FeaturesSelector:
         if used_score_method == 0:
             # Default affinity method used
             fs = SelectKBest(self._score, k=self._k)
-
-        elif used_score_method == 1: # Chi2
+        elif used_score_method == 1:  # Chi2
             fs = SelectKBest(chi2, k=self._k)
+        elif used_score_method == 2:  # Anova F
+            fs = SelectKBest(f_classif, k=self._k)
+        elif used_score_method == 3:  # Pearson Correlation
+            fs = SelectKBest(r_regression, k=self._k)
         else:
             print("\n[ERROR-EnvFile] Invalid feature selection score method option")
             raise Exception

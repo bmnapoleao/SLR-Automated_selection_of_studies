@@ -1,6 +1,7 @@
 # Author: Marcelo Costalonga
 import os.path
 
+from models.ClassifierExecutionResult import ClassifierExecutionResult
 from pipeline.Classifiers import DecisionTreeClassifier, SVMClassifier, KNNClassifier, RandomForestClassifier
 from pipeline.Classifiers import GaussianNaiveBayesClassifier, LinearRegressionClassifier, LogisticRegressionClassifier
 from pipeline.DatasetGenerator import DatasetGenerator
@@ -25,43 +26,40 @@ if __name__ == '__main__':
     seed = None
     start = datetime.now()
     # TODO: Change to save the results in a specific path/file
-    month_day, hour_min = start.strftime("%b%d,%Hh%Mm").lower().split(',')
     # result_file = 'output/small-samples-{}/k{}-report-{}.csv'.format(month_day, k_features, hour_min)
     # result_file = 'output/tests-with-inverted-dataset-{}/k{}-report-{}.csv'.format(month_day, k_features, hour_min)
     # result_file = None
 
 
     # Hardcoded params (just for testing on ide)
-    k_features = 1000 # TODO: max is around 5k
+    # k_features = 1000 # TODO: max is around 5k
     # env_file_path = '/home/mcostalonga/new-home/thesis/git-repo-slr/SLR-Automated_selection_of_studies/test_config_env_files/dummy-test-file.env'
+    # output_path = None
 
     # # # Assert user passed required parameters
     output_path = None
     try:
         assert len(sys.argv) > 1
         k_features = int(sys.argv[1])
-        env_file_path = sys.argv[2]  # TODO: add check to assert env file exists
         try:
             assert 0 < k_features <= 5000
         except Exception:
+            print("\nMissing parameter with the number of kFeatures. Please inform in the command line.")
             raise Exception
+
         try:
-            output_path = sys.argv[3]
+            env_file_path = sys.argv[2]  # TODO: add check to assert env file exists
+            assert env_file_path.endswith('.env')
         except Exception:
-            pass
+            print("\nMissing second parameter with the env file path. Please inform in the command line.")
+            raise Exception
+
+        output_path = sys.argv[3]
+
     except AssertionError:
-        print("\nMissing parameter with the number of kFeatures. Please inform in the command line.")
         exit(0)
 
-    report_file_name = 'k{}-report-{}-{}.xlsx'.format(k_features, month_day, hour_min)
-    if not output_path:
-        output_path = 'output-april/recall-tests-with-TFIDF'
-    elif output_path.endswith('.xlsx') or output_path.endswith('.csv'):
-        report_file_name = output_path.split('/')[-1]
-        output_path = output_path.rstrip(report_file_name)
-        report_file_name = report_file_name.replace('.csv', '.xlsx')
-
-    report_file_path = os.path.join(output_path, report_file_name)
+    report_file_path = Report.format_report_file_path(output_path, k_features)
     print('REPORT FILE:', report_file_path)
     # result_file = 'output-april/recall-tests-with-TFIDF/TMP-k{}-report-{}-{}.csv'.format(k_features,month_day,hour_min)
 
@@ -104,8 +102,7 @@ if __name__ == '__main__':
 
     # Perform ML test
     number_of_splits = 5 # TODO: originally set to 3
-    scores_report = dict()
-    predictions_report = dict()
+    clsf_exec_results = dict()
 
     if test_config.use_feature_selection():
         # # USING FEATURE SELECTION
@@ -117,23 +114,21 @@ if __name__ == '__main__':
         testing_set = dataset_generator.testing_dataset
 
     # # Decision Tree
-    dt_classifier = DecisionTreeClassifier(seed=42, criterion='gini', n_splits=number_of_splits)
-    predictions_report['dt'], scores_report['dt_scores'] = dt_classifier.execute(training_set=training_set,
-                                                                                 testing_set=testing_set)
+    # dt_classifier = DecisionTreeClassifier(seed=42, criterion='gini', n_splits=number_of_splits)
+    # clsf_exec_results['dt'] = dt_classifier.execute(training_set=training_set, testing_set=testing_set)
+
     # # SVM
     svm_classifier = SVMClassifier(seed=42, n_splits=number_of_splits)
-    predictions_report['svm'], scores_report['svm_scores'] = svm_classifier.execute(training_set=training_set,
-                                                                                    testing_set=testing_set)
+    clsf_exec_results['svm'] = svm_classifier.execute(training_set=training_set, testing_set=testing_set)
 
-    # # Random Forest
-    rf_classifier = RandomForestClassifier(seed=42, n_splits=number_of_splits)
-    predictions_report['rforest'], scores_report['rforest_scores'] = rf_classifier.execute(training_set=training_set,
-                                                                                           testing_set=testing_set)
+    # # # Random Forest
+    # rf_classifier = RandomForestClassifier(seed=42, n_splits=number_of_splits)
+    # clsf_exec_results['rforest'] = rf_classifier.execute(training_set=training_set, testing_set=testing_set)
+    #
+    # # # KNN
+    # knn_classifier = KNNClassifier(seed=42, n_splits=number_of_splits)
+    # clsf_exec_results['knn'] = knn_classifier.execute(training_set=training_set, testing_set=testing_set)
 
-    # # KNN
-    knn_classifier = KNNClassifier(seed=42, n_splits=number_of_splits)
-    predictions_report['knn'], scores_report['knn_scores'] = knn_classifier.execute(training_set=training_set,
-                                                                                    testing_set=testing_set)
 
     # # # Naive Bayes (Gaussian)
     # gnb_classifier = GaussianNaiveBayesClassifier(seed=42, n_splits=number_of_splits)
@@ -150,13 +145,13 @@ if __name__ == '__main__':
     # predictions_report['logr'], scores_report['logr_scores'] = knn_classifier.execute(training_set=training_set,
     #                                                                                   testing_set=testing_set)
 
-    # Compare results and generate reports
-    report = Report(training_set=training_set, testing_set=testing_set,
-                    predictions=predictions_report, scores=scores_report,
-                    # dt_pred=predictions_report['dt'], svm_pred=predictions_report['svm'],
-                    k_fs=k_features, y_true=testing_set['categories'], result_file=report_file_path)
     end = datetime.now()
-    report.report_and_write_csv(start, end)
+
+    # Compare results and generate reports
+    report = Report(training_set=training_set, testing_set=testing_set, clsf_exec_results=clsf_exec_results,
+                    k_fs=k_features, y_true=testing_set['categories'], start_time=start,
+                    end_time=end, result_file=report_file_path)
+    report.report_and_write_csv()
     print("\nExecution ended:\n\tStart: {}\n\tEnd: {}\n\tTotal time duration = {}".format(start, end, end-start))
     print("Results can be seem at:\n\t - {}".format(report.result_file_path))
 

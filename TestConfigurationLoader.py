@@ -9,7 +9,9 @@ DATASET_TYPES = {
 }
 FS_SCORE_METHODS = {
     'affinity': 0,
-    'chi2': 1
+    'chi2': 1,
+    'anovaf': 2,
+    'pearson': 3
 }
 CROSS_VALS = {
     'kfold': 0,
@@ -60,7 +62,8 @@ class TestConfiguration(metaclass=Singleton):
                 ['CROSS_VAL', self.used_cross_val_method],
                 ['TF_IDF_CONFIG', self.tf_idf_config],
                 ['NUMBER_OF_SPLITS', self.number_of_splits],
-                ['SEED', self.seed]
+                ['SEED', self.seed],
+                ['ENV_FILE', self.env_file_path]
             ]
 
             print('\n\t TEST CONFIGURATION FROM ENV FILE:')
