@@ -19,6 +19,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_validate, GridSearchCV, TimeSeriesSplit, train_test_split
 
+from sklearn.linear_model import LinearRegression
+
 
 # Class to split content of training set into multiple folds, grouping them by a specific range of years.
 
@@ -52,6 +54,7 @@ class SimpleClassifier:
     classifier_name = ''
     classifier_label = ''
     best_params = dict()
+    grid_search_tested_params = dict()
 
     def __init__(self, seed, n_splits=5, parameters_config=None):
         self._seed = seed
@@ -132,6 +135,10 @@ class SimpleClassifier:
             print(f"threasholds: {cross_val_scores['threasholds_cros_val?']}")
             print(f"fscore_threashold: {cross_val_scores['fscore_threashold_cros_val?']}")
 
+        # without applying cross-validation because we're already using GridSearch
+        elif used_cross_val_method == 2:
+            pass
+
         else:
             print("\n[ERROR-EnvFile] Invalid cross validation method")
             raise Exception
@@ -167,7 +174,8 @@ class SimpleClassifier:
 
         # return ClassifierExecutionResult(predictions, scores, self.best_params)
         print("-------------------------------------------------------------------------------------------------------\n\n")
-        return {'predictions': predictions, 'scores': scores, 'best_params': self.best_params}
+        return {'predictions': predictions, 'scores': scores,
+                'best_params': self.best_params, 'tested_params': self.grid_search_tested_params}
 
 
 # Extends the SimpleClassifier class to use the DecisionTree classifier with a specific configuration
@@ -188,14 +196,16 @@ class DecisionTreeClassifier (SimpleClassifier):
             'min_samples_split': [2, 10, 100],
             'class_weight': [None, 'balanced']
         }
-        cfl = GridSearchCV(model, params, cv=5, scoring='accuracy')
-        cfl.fit(X, y)
-        for param, value in cfl.best_params_.items():
+        grid_search = GridSearchCV(model, params, cv=5, scoring='accuracy')
+        grid_search.fit(X, y)
+        for param, value in grid_search.best_params_.items():
             print("%s : %s" % (param, value))
         print("-----------------------------------------------\n\n")
-        self.best_params = cfl.best_params_
-        model = SklearnDecisionTreeClassifier(random_state=self._seed)
-        model.set_params(**cfl.best_params_)
+        self.best_params = grid_search.best_params_
+        self.grid_search_tested_params = params
+        model = grid_search.best_estimator_
+        # model = SklearnDecisionTreeClassifier(random_state=self._seed)
+        # model.set_params(**grid_search.best_params_)
         return model
 
 
@@ -210,22 +220,25 @@ class SVMClassifier (SimpleClassifier):
         print('\n\n===== SVM Classifier ===== \n\t n_splits=', self._n_splits)
         print('===== Hyperparameter tuning (best params) =====')
         params = {
-            'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
-            'C': [0.001, 0.005, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0, 1.3, 1.5, 1.7, 2.0, 2.4, 2.6, 2.8, 3.0, 3.3, 3.5, 3.7,
-                  4.0, 10, 100, 1000],
+            'kernel': ['rbf', 'sigmoid'],
+            'C': [0.5, 0.65, 0.8, 0.95, 1.1, 1.25, 1.4, 1.55, 1.7, 1.85, 2.0, 2.15, 2.3, 2.45, 2.6, 2.75, 2.9, 3.05,
+                  3.2, 3.35],
             'gamma': [1, 0.1, 0.01, 0.001, 0.0001],
-            'tol': [0.0001, 0.001, 0.01, 0.1, 1],
+            'tol': [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85,
+                    0.9, 0.95, 1.0],
             'class_weight': ['balanced', None]
         }
         model = SVC(random_state=self._seed, probability=True)
-        cfl = GridSearchCV(model, params, cv=5, scoring='accuracy')
-        cfl.fit(X, y)
-        for param, value in cfl.best_params_.items():
+        grid_search = GridSearchCV(model, params, cv=5, scoring='accuracy')
+        grid_search.fit(X, y)
+        for param, value in grid_search.best_params_.items():
             print("%s : %s" % (param, value))
         print("-----------------------------------------------\n\n")
-        self.best_params = cfl.best_params_
-        model = SVC(random_state=self._seed, probability=True)
-        model.set_params(**cfl.best_params_)
+        self.best_params = grid_search.best_params_
+        self.grid_search_tested_params = params
+        model = grid_search.best_estimator_
+        # model = SVC(random_state=self._seed, probability=True)
+        # model.set_params(**grid_search.best_params_)
         return model
 
 

@@ -14,6 +14,7 @@ from datetime import datetime
 from TestConfigurationLoader import TestConfiguration
 import sys
 
+DEFAULT_OUTPUT_DIR = 'output-v2/'
 
 if __name__ == '__main__':
 
@@ -48,13 +49,20 @@ if __name__ == '__main__':
             raise Exception
 
         try:
-            env_file_path = sys.argv[2]  # TODO: add check to assert env file exists
+            env_file_path = sys.argv[2]  # TODO: add check to assert env file passed really exists
             assert env_file_path.endswith('.env')
         except Exception:
-            print("\nMissing second parameter with the env file path. Please inform in the command line.")
+            print("\n[ERROR: MISSING ARGS] Missing second parameter with the env file path. "
+                  "Please inform in the command line.\n")
             raise Exception
 
-        output_path = sys.argv[3]
+        try: # Output path, can be: dir/file, dir/ or none
+            output_path = sys.argv[3]
+        except IndexError:
+            output_path = DEFAULT_OUTPUT_DIR + env_file_path.split('.')[0].split('/')[-1]
+            # TODO: Hardcoded value, is duplicated at "Report.py". Improve this and use "warning" lib to raise warnings
+            print("\n[WARNING:  NO OUTPUT PATH INFORMED] Using default path. "
+                  "The result file will be created at {}.\n".format(output_path))
 
     except AssertionError:
         exit(0)
@@ -68,7 +76,7 @@ if __name__ == '__main__':
 
     # Loading test configuration variables
     try:
-        test_config = TestConfiguration(file_path=env_file_path)
+        test_config = TestConfiguration(file_path=env_file_path, output_path=output_path)
     except Exception:
         print("\nProblem while trying to load the test env file")
         raise Exception
@@ -120,7 +128,7 @@ if __name__ == '__main__':
     # # SVM
     svm_classifier = SVMClassifier(seed=42, n_splits=number_of_splits)
     clsf_exec_results['svm'] = svm_classifier.execute(training_set=training_set, testing_set=testing_set)
-
+    # clsf_exec_results['svm']
     # # # Random Forest
     # rf_classifier = RandomForestClassifier(seed=42, n_splits=number_of_splits)
     # clsf_exec_results['rforest'] = rf_classifier.execute(training_set=training_set, testing_set=testing_set)

@@ -14,8 +14,9 @@ FS_SCORE_METHODS = {
     'pearson': 3
 }
 CROSS_VALS = {
-    'kfold': 0,
-    'series': 1
+    'kfold': 0, # FIXME#28: Initially we're applying crossval + gridSearch fit (test without grid search - 26/05)
+    'series': 1,  # FIXME#28: Initially we're applying crossval + gridSearch fit (test without grid search - 26/05)
+    'none': 2
 }
 
 
@@ -31,7 +32,7 @@ class Singleton(type):
 class TestConfiguration(metaclass=Singleton):
     env_file_path = ''
 
-    def __init__(self, file_path=None):
+    def __init__(self, file_path=None, output_path=None):
         self.used_dataset = None
         self.used_fs = None
         self.used_score_method = None
@@ -41,6 +42,7 @@ class TestConfiguration(metaclass=Singleton):
         self.seed = None
         self.env_spec = []
         self.env_file_path = file_path
+        self.output_path = output_path
 
         # Loading values from env file
         self.load_env_vars()
@@ -63,7 +65,8 @@ class TestConfiguration(metaclass=Singleton):
                 ['TF_IDF_CONFIG', self.tf_idf_config],
                 ['NUMBER_OF_SPLITS', self.number_of_splits],
                 ['SEED', self.seed],
-                ['ENV_FILE', self.env_file_path]
+                ['ENV_FILE', self.env_file_path],
+                ['OUTPUT_PATH', self.output_path]
             ]
 
             print('\n\t TEST CONFIGURATION FROM ENV FILE:')

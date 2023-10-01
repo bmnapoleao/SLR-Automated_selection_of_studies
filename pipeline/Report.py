@@ -8,8 +8,6 @@ import matplotlib.pyplot as plt  # FIXME#26: check if need to include in require
 from sklearn.metrics import roc_curve, auc
 from TestConfigurationLoader import TestConfiguration
 
-DEFAULT_OUTPUT_DIR = 'output/'
-
 
 # Class that writes a report file with tge details of the execution
 class Report:
@@ -77,17 +75,22 @@ class Report:
             raise Exception
 
     def _set_best_params(self, clsf_exec_results: dict):
-        index = self._classifiers_labels
+        index = list()
+        for label in self._classifiers_labels:
+            index.append('{}: Best Params'.format(label))
+            index.append('{}: Tested Params'.format(label))
         table = list()
         try:
             for clsf_label in clsf_exec_results:
                 table.append(clsf_exec_results[clsf_label]['best_params'])
+                table.append(clsf_exec_results[clsf_label]['tested_params'])
             self._df_params = pd.DataFrame(table)
             self._df_params.index = index
         except ValueError:
             # If all values are scalar will raise this error
             for clsf_label in clsf_exec_results:
                 table.append([clsf_exec_results[clsf_label]['best_params']])
+                table.append([clsf_exec_results[clsf_label]['tested_params']])
             self._df_params = pd.DataFrame(table)
             self._df_params.index = index
         except Exception:
@@ -123,12 +126,13 @@ class Report:
                 now = datetime.now()
                 month_day, hour_min = now.strftime("%b%d,%Hh%Mm").lower().split(',')
                 report_file_name = 'k{}-report-{}-{}.xlsx'.format(k_features, month_day, hour_min)
-        else:
+        else: # TODO: Oct-1 Check! This case doesn't seem to happen anymore
             # If neither output dir nor output file name was informed
+            default_output_dir = 'outputs-v2/'
             now = datetime.now()
             month_day, hour_min = now.strftime("%b%d,%Hh%Mm").lower().split(',')
             report_file_name = 'k{}-report-{}-{}.xlsx'.format(k_features, month_day, hour_min)
-            output_path = DEFAULT_OUTPUT_DIR
+            output_path = default_output_dir
 
         report_file_path = os.path.join(output_path, report_file_name)
         if os.path.exists(report_file_path):
@@ -252,7 +256,7 @@ class Report:
             self._df_analysis.to_excel(writer, sheet_name='Analysis')
             self._df_test_pred.to_excel(writer, sheet_name='Predictions')
             self._df_test_proba.to_excel(writer, sheet_name='Probabilities')
-            self._df_params.to_excel(writer, sheet_name='Best Parameters')
+            self._df_params.to_excel(writer, sheet_name='GridSearch Parameters')
             self._df_specs.to_excel(writer, sheet_name='Test Configuration')  # FIXME#30: Adicionar mais infos na env file
 
             # df_specs.to_excel(writer, sheet_name='Environment Information') # TODO: Add another sheet with Env info
