@@ -126,13 +126,9 @@ class Report:
                 now = datetime.now()
                 month_day, hour_min = now.strftime("%b%d,%Hh%Mm").lower().split(',')
                 report_file_name = 'k{}-report-{}-{}.xlsx'.format(k_features, month_day, hour_min)
-        else: # TODO: Oct-1 Check! This case doesn't seem to happen anymore
-            # If neither output dir nor output file name was informed
-            default_output_dir = 'outputs-v2/'
-            now = datetime.now()
-            month_day, hour_min = now.strftime("%b%d,%Hh%Mm").lower().split(',')
-            report_file_name = 'k{}-report-{}-{}.xlsx'.format(k_features, month_day, hour_min)
-            output_path = default_output_dir
+        else:
+            print('ERROR: No output path found')
+            raise Exception
 
         report_file_path = os.path.join(output_path, report_file_name)
         if os.path.exists(report_file_path):

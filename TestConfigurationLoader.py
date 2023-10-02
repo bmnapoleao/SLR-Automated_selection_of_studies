@@ -32,7 +32,7 @@ class Singleton(type):
 class TestConfiguration(metaclass=Singleton):
     env_file_path = ''
 
-    def __init__(self, file_path=None, output_path=None):
+    def __init__(self, file_path=None):
         self.used_dataset = None
         self.used_fs = None
         self.used_score_method = None
@@ -42,7 +42,8 @@ class TestConfiguration(metaclass=Singleton):
         self.seed = None
         self.env_spec = []
         self.env_file_path = file_path
-        self.output_path = output_path
+        self.gs_cv = None
+        self.gs_scoring = None
 
         # Loading values from env file
         self.load_env_vars()
@@ -57,6 +58,10 @@ class TestConfiguration(metaclass=Singleton):
             self.number_of_splits = os.getenv('NUMBER_OF_SPLITS').lower()
             self.seed = os.getenv('SEED').lower()
 
+            # GridSearch default params
+            self.gs_cv = int(os.getenv('GS_CV', 5))
+            self.gs_scoring = os.getenv('GS_SCORING', 'f1').lower()
+
             self.env_spec = [
                 ['DATASET_TYPE', self.used_dataset],
                 ['USED_FEATURE_SELECTION', self.used_fs],
@@ -66,7 +71,8 @@ class TestConfiguration(metaclass=Singleton):
                 ['NUMBER_OF_SPLITS', self.number_of_splits],
                 ['SEED', self.seed],
                 ['ENV_FILE', self.env_file_path],
-                ['OUTPUT_PATH', self.output_path]
+                ['GS_CV', self.gs_cv],
+                ['GS_SCORING', self.gs_scoring],
             ]
 
             print('\n\t TEST CONFIGURATION FROM ENV FILE:')
@@ -89,3 +95,6 @@ class TestConfiguration(metaclass=Singleton):
 
     def get_env_vars_spec(self):
         return self.env_spec
+
+    def get_grid_search_params(self):
+        return {'gs_cv': self.gs_cv, 'gs_scoring': self.gs_scoring}

@@ -14,13 +14,15 @@ from datetime import datetime
 from TestConfigurationLoader import TestConfiguration
 import sys
 
-DEFAULT_OUTPUT_DIR = 'output-v2/'
+DEFAULT_OUTPUT_DIR = 'output-v3/'
 
 if __name__ == '__main__':
 
     # TODO: OBS: Para executar multiplas vezes pelo terminal:
     # # for i in {1..5}; do python main.py "$((i*1000))"; done # (variando k de 1000 a 5000)
     # # for i in {0..4}; do python main.py "$((i*1000+500))"; done # (variando k de 500 a 4500)
+    # for i in {0..4}; do python main.py "$((i*500+500))"; done  # (variando k de 500 a 2500)
+    # for i in {750,1000,1100,1200,1300,1400,1500}; do echo "$i"; done
     # FIXME #2: Check integrity of dataset Title: "PMBOK Guides" seems to be a Book with an abstract field that doens't looks valid
 
     # TODO: Delete this or comment when done testing
@@ -56,30 +58,32 @@ if __name__ == '__main__':
                   "Please inform in the command line.\n")
             raise Exception
 
-        try: # Output path, can be: dir/file, dir/ or none
-            output_path = sys.argv[3]
-        except IndexError:
-            output_path = DEFAULT_OUTPUT_DIR + env_file_path.split('.')[0].split('/')[-1]
-            # TODO: Hardcoded value, is duplicated at "Report.py". Improve this and use "warning" lib to raise warnings
-            print("\n[WARNING:  NO OUTPUT PATH INFORMED] Using default path. "
-                  "The result file will be created at {}.\n".format(output_path))
-
     except AssertionError:
         exit(0)
-
-    report_file_path = Report.format_report_file_path(output_path, k_features)
-    print('REPORT FILE:', report_file_path)
-    # result_file = 'output-april/recall-tests-with-TFIDF/TMP-k{}-report-{}-{}.csv'.format(k_features,month_day,hour_min)
 
     #### END OF CONFIGURATION / BEGIN OF PIPELINE
     #### FIXME#21: Organize code
 
     # Loading test configuration variables
     try:
-        test_config = TestConfiguration(file_path=env_file_path, output_path=output_path)
+        test_config = TestConfiguration(file_path=env_file_path)
     except Exception:
         print("\nProblem while trying to load the test env file")
         raise Exception
+
+
+    try: # Output path, can be: dir/file, dir/ or none
+        output_path = sys.argv[3]
+    except IndexError:
+        output_sufix = 'scoring_{}'.format(test_config.get_grid_search_params()['gs_scoring'])
+        output_path = DEFAULT_OUTPUT_DIR + env_file_path.split('.')[0].split('/')[-1]
+        output_path = os.path.join(output_path, output_sufix)
+        print("\n[WARNING:  NO OUTPUT PATH INFORMED] Using default path. "
+              "The result file will be created at {}.\n".format(output_path))
+
+    report_file_path = Report.format_report_file_path(output_path, k_features)
+    print('REPORT FILE:', report_file_path)
+    # result_file = 'output-april/recall-tests-with-TFIDF/TMP-k{}-report-{}-{}.csv'.format(k_features,month_day,hour_min)
 
     # Validates input files
     validator = InputValidator()
@@ -122,17 +126,18 @@ if __name__ == '__main__':
         testing_set = dataset_generator.testing_dataset
 
     # # Decision Tree
-    # dt_classifier = DecisionTreeClassifier(seed=42, criterion='gini', n_splits=number_of_splits)
-    # clsf_exec_results['dt'] = dt_classifier.execute(training_set=training_set, testing_set=testing_set)
+    dt_classifier = DecisionTreeClassifier(seed=42, criterion='gini', n_splits=number_of_splits)
+    clsf_exec_results['dt'] = dt_classifier.execute(training_set=training_set, testing_set=testing_set)
 
     # # SVM
     svm_classifier = SVMClassifier(seed=42, n_splits=number_of_splits)
     clsf_exec_results['svm'] = svm_classifier.execute(training_set=training_set, testing_set=testing_set)
     # clsf_exec_results['svm']
+
     # # # Random Forest
-    # rf_classifier = RandomForestClassifier(seed=42, n_splits=number_of_splits)
-    # clsf_exec_results['rforest'] = rf_classifier.execute(training_set=training_set, testing_set=testing_set)
-    #
+    rf_classifier = RandomForestClassifier(seed=42, n_splits=number_of_splits)
+    clsf_exec_results['rforest'] = rf_classifier.execute(training_set=training_set, testing_set=testing_set)
+
     # # # KNN
     # knn_classifier = KNNClassifier(seed=42, n_splits=number_of_splits)
     # clsf_exec_results['knn'] = knn_classifier.execute(training_set=training_set, testing_set=testing_set)

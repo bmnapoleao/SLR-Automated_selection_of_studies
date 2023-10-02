@@ -23,7 +23,6 @@ from sklearn.linear_model import LinearRegression
 
 
 # Class to split content of training set into multiple folds, grouping them by a specific range of years.
-
 class YearsSplit:
     def __init__(self, n_splits=4, years=[]):
         self._n_splits = n_splits
@@ -196,13 +195,20 @@ class DecisionTreeClassifier (SimpleClassifier):
             'min_samples_split': [2, 10, 100],
             'class_weight': [None, 'balanced']
         }
-        grid_search = GridSearchCV(model, params, cv=5, scoring='accuracy')
+
+        grid_search_default_params = TestConfiguration().get_grid_search_params()
+        gs_cv = grid_search_default_params['gs_cv']
+        gs_scoring = grid_search_default_params['gs_scoring']
+
+        grid_search = GridSearchCV(model, params, cv=gs_cv, scoring=gs_scoring)
         grid_search.fit(X, y)
         for param, value in grid_search.best_params_.items():
             print("%s : %s" % (param, value))
         print("-----------------------------------------------\n\n")
         self.best_params = grid_search.best_params_
         self.grid_search_tested_params = params
+        self.grid_search_tested_params['cv'] = gs_cv
+        self.grid_search_tested_params['scoring'] = gs_scoring
         model = grid_search.best_estimator_
         # model = SklearnDecisionTreeClassifier(random_state=self._seed)
         # model.set_params(**grid_search.best_params_)
@@ -229,13 +235,20 @@ class SVMClassifier (SimpleClassifier):
             'class_weight': ['balanced', None]
         }
         model = SVC(random_state=self._seed, probability=True)
-        grid_search = GridSearchCV(model, params, cv=5, scoring='accuracy')
+
+        grid_search_default_params = TestConfiguration().get_grid_search_params()
+        gs_cv = grid_search_default_params['gs_cv']
+        gs_scoring = grid_search_default_params['gs_scoring']
+
+        grid_search = GridSearchCV(model, params, cv=gs_cv, scoring=gs_scoring)
         grid_search.fit(X, y)
         for param, value in grid_search.best_params_.items():
             print("%s : %s" % (param, value))
         print("-----------------------------------------------\n\n")
         self.best_params = grid_search.best_params_
         self.grid_search_tested_params = params
+        self.grid_search_tested_params['cv'] = gs_cv
+        self.grid_search_tested_params['scoring'] = gs_scoring
         model = grid_search.best_estimator_
         # model = SVC(random_state=self._seed, probability=True)
         # model.set_params(**grid_search.best_params_)
@@ -259,7 +272,14 @@ class KNNClassifier (SimpleClassifier):
             'algorithm': ['auto', 'ball_tree', 'kd_tree'],
         }
         model = KNeighborsClassifier()
-        cfl = GridSearchCV(model, params, cv=5, scoring='accuracy')
+
+        grid_search_default_params = TestConfiguration().get_grid_search_params()
+        gs_cv = grid_search_default_params['gs_cv']
+        gs_scoring = grid_search_default_params['gs_scoring']
+
+        cfl = GridSearchCV(model, params, cv=gs_cv, scoring=gs_scoring)
+        self.grid_search_tested_params['cv'] = gs_cv
+        self.grid_search_tested_params['scoring'] = gs_scoring
         cfl.fit(X, y)
         for param, value in cfl.best_params_.items():
             print("%s : %s" % (param, value))
@@ -280,6 +300,11 @@ class RandomForestClassifier (SimpleClassifier):
         print('\n\n===== Random Forest Classifier ===== \n\t n_splits=', self._n_splits)
         print('===== Hyperparameter tuning (best params) =====')
         model = SklearnRandomForestClassifier(random_state=self._seed)
+
+        grid_search_default_params = TestConfiguration().get_grid_search_params()
+        gs_cv = grid_search_default_params['gs_cv']
+        gs_scoring = grid_search_default_params['gs_scoring']
+
         params = {
             'n_estimators': [5, 10, 100],
             'criterion': ["gini", "entropy"],
@@ -287,14 +312,18 @@ class RandomForestClassifier (SimpleClassifier):
             'min_samples_split': [2, 10, 100],
             'class_weight': [None, 'balanced']
         }
-        cfl = GridSearchCV(model, params, cv=5, scoring='accuracy')
+        cfl = GridSearchCV(model, params, cv=gs_cv, scoring=gs_scoring)
         cfl.fit(X, y)
         for param, value in cfl.best_params_.items():
             print("\t%s : %s" % (param, value))
 
         self.best_params = cfl.best_params_
-        model = SklearnRandomForestClassifier(random_state=self._seed)
-        model.set_params(**cfl.best_params_)
+        self.grid_search_tested_params = params
+        self.grid_search_tested_params['cv'] = gs_cv
+        self.grid_search_tested_params['scoring'] = gs_scoring
+        # model = SklearnRandomForestClassifier(random_state=self._seed)
+        # model.set_params(**cfl.best_params_)
+        model = cfl.best_estimator_
         return model
 
 
