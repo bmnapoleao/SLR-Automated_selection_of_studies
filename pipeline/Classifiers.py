@@ -55,10 +55,10 @@ class SimpleClassifier:
     best_params = dict()
     grid_search_tested_params = dict()
 
-    def __init__(self, seed, n_splits=5, parameters_config=None):
+    def __init__(self, seed, n_splits=5):
         self._seed = seed
         self._n_splits = n_splits
-        self._config_used = parameters_config
+        self._cross_val_method = TestConfiguration().get_cross_val_type()
 
     def execute(self, training_set: dict, testing_set: dict):
         X_train = training_set['features']
@@ -70,13 +70,10 @@ class SimpleClassifier:
         # Get classifier model
         model = self.get_classifier(X_train, y_train)
 
-        # Loading dataset configuration
-        used_cross_val_method = TestConfiguration().get_cross_val_type()
-
         cross_val_scores = dict()
 
         # kfold cross validation (splited by years)
-        if used_cross_val_method == 0:
+        if self._cross_val_method == 0:
             # FIXME#10: If we're going to use this approach should it be all years (including testing)?
             groups = training_set['years']
             random.seed(self._seed)
@@ -97,7 +94,7 @@ class SimpleClassifier:
             model.fit(X_train, y_train)
 
         # time series cross validation
-        elif used_cross_val_method == 1:
+        elif self._cross_val_method == 1:
             threasholds = []
             fscore_threashold = []
 
@@ -135,7 +132,7 @@ class SimpleClassifier:
             print(f"fscore_threashold: {cross_val_scores['fscore_threashold_cros_val?']}")
 
         # without applying cross-validation because we're already using GridSearch
-        elif used_cross_val_method == 2:
+        elif self._cross_val_method == 2:
             pass
 
         else:
@@ -189,10 +186,14 @@ class DecisionTreeClassifier (SimpleClassifier):
         print('\n\n===== Decision Tree Classifier ===== \n\t n_splits=', self._n_splits)
         print('===== Hyperparameter tuning (best params) =====')
         model = SklearnDecisionTreeClassifier()
+        # If cross_validation different from GridSearch just return it
+        if self._cross_val_method != 2:
+            return model
+
         params = {
             'criterion': ["gini", "entropy"],
-            'max_depth': [10, 50, 100, None],
-            'min_samples_split': [2, 10, 100],
+            'max_depth': [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, None],
+            'min_samples_split': [2, 10, 25, 50, 75, 100],
             'class_weight': [None, 'balanced']
         }
 
@@ -224,6 +225,11 @@ class SVMClassifier (SimpleClassifier):
 
     def get_classifier(self, X, y):
         print('\n\n===== SVM Classifier ===== \n\t n_splits=', self._n_splits)
+        model = SVC(random_state=self._seed, probability=True)
+        # If cross_validation different from GridSearch just return it
+        if self._cross_val_method != 2:
+            return model
+
         print('===== Hyperparameter tuning (best params) =====')
         params = {
             'kernel': ['rbf', 'sigmoid'],
@@ -234,13 +240,15 @@ class SVMClassifier (SimpleClassifier):
                     0.9, 0.95, 1.0],
             'class_weight': ['balanced', None]
         }
-        model = SVC(random_state=self._seed, probability=True)
 
         grid_search_default_params = TestConfiguration().get_grid_search_params()
         gs_cv = grid_search_default_params['gs_cv']
         gs_scoring = grid_search_default_params['gs_scoring']
 
+        # TODO: Make your own scorer and deal with ZERO_DIVISION
         grid_search = GridSearchCV(model, params, cv=gs_cv, scoring=gs_scoring)
+        # grid_search = GridSearchCV(model, params, cv=gs_cv, scoring="recall_weighted")
+
         grid_search.fit(X, y)
         for param, value in grid_search.best_params_.items():
             print("%s : %s" % (param, value))
@@ -265,13 +273,17 @@ class KNNClassifier (SimpleClassifier):
     def get_classifier(self, X, y):
         print('\n\n===== KNN Classifier ===== \n\t n_splits=', self._n_splits)
         print('===== Hyperparameter tuning (best params) =====')
+        model = KNeighborsClassifier()
+        # If cross_validation different from GridSearch just return it
+        if self._cross_val_method != 2:
+            return model
+
         params = {
             'n_neighbors': [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21],
             'metric': ['euclidean', 'manhattan', 'minkowski'],
             'weights': ['uniform', 'distance'],
             'algorithm': ['auto', 'ball_tree', 'kd_tree'],
         }
-        model = KNeighborsClassifier()
 
         grid_search_default_params = TestConfiguration().get_grid_search_params()
         gs_cv = grid_search_default_params['gs_cv']
@@ -300,18 +312,25 @@ class RandomForestClassifier (SimpleClassifier):
         print('\n\n===== Random Forest Classifier ===== \n\t n_splits=', self._n_splits)
         print('===== Hyperparameter tuning (best params) =====')
         model = SklearnRandomForestClassifier(random_state=self._seed)
+        # If cross_validation different from GridSearch just return it
+        if self._cross_val_method != 2:
+            return model
+
+        params = {
+            # 'n_estimators': [100, 200, 300],
+            'n_estimators': [2, 5, 100],
+            # 'max_features': ["sqrt", "auto"],
+            'criterion': ["gini", "entropy"],
+            # 'max_depth':[10, 25, 50, 75, 100, None],
+            'max_depth':[10, 20, 30, None],
+            'min_samples_split': [2, 10, 25, 50, 75, 100],
+            'class_weight': [None, 'balanced']
+        }
 
         grid_search_default_params = TestConfiguration().get_grid_search_params()
         gs_cv = grid_search_default_params['gs_cv']
         gs_scoring = grid_search_default_params['gs_scoring']
 
-        params = {
-            'n_estimators': [5, 10, 100],
-            'criterion': ["gini", "entropy"],
-            'max_depth': [10, 50, 100, None],
-            'min_samples_split': [2, 10, 100],
-            'class_weight': [None, 'balanced']
-        }
         cfl = GridSearchCV(model, params, cv=gs_cv, scoring=gs_scoring)
         cfl.fit(X, y)
         for param, value in cfl.best_params_.items():

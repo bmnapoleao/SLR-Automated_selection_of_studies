@@ -3,7 +3,7 @@
 import os
 import pandas as pd
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 import matplotlib.pyplot as plt  # FIXME#26: check if need to include in requirement
 from sklearn.metrics import roc_curve, auc
 from TestConfigurationLoader import TestConfiguration
@@ -123,7 +123,8 @@ class Report:
                 report_file_name = report_file_name.replace('.csv', '.xlsx')
             else:
                 # If output path contains only output_dir, use default output_file_name format
-                now = datetime.now()
+                # now = datetime.now()
+                now = datetime.now() - timedelta(15) # TODO: FIX THIS
                 month_day, hour_min = now.strftime("%b%d,%Hh%Mm").lower().split(',')
                 report_file_name = 'k{}-report-{}-{}.xlsx'.format(k_features, month_day, hour_min)
         else:

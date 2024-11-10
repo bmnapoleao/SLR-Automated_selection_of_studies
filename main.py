@@ -10,11 +10,11 @@ from pipeline.InputValidator import InputValidator
 from pipeline.Report import Report
 from pipeline.TextFiltering import TextFilter
 from pipeline.BibFormater import BibFormater
-from datetime import datetime
+from datetime import datetime, timedelta
 from TestConfigurationLoader import TestConfiguration
 import sys
 
-DEFAULT_OUTPUT_DIR = 'output-v3/'
+DEFAULT_OUTPUT_DIR = 'output-v7/'
 
 if __name__ == '__main__':
 
@@ -27,7 +27,8 @@ if __name__ == '__main__':
 
     # TODO: Delete this or comment when done testing
     seed = None
-    start = datetime.now()
+    # start = datetime.now()
+    start = datetime.now() - timedelta(15) # TODO: FIX THIS
     # TODO: Change to save the results in a specific path/file
     # result_file = 'output/small-samples-{}/k{}-report-{}.csv'.format(month_day, k_features, hour_min)
     # result_file = 'output/tests-with-inverted-dataset-{}/k{}-report-{}.csv'.format(month_day, k_features, hour_min)
@@ -125,7 +126,7 @@ if __name__ == '__main__':
         training_set = dataset_generator.training_dataset
         testing_set = dataset_generator.testing_dataset
 
-    # # Decision Tree
+    # # # Decision Tree
     dt_classifier = DecisionTreeClassifier(seed=42, criterion='gini', n_splits=number_of_splits)
     clsf_exec_results['dt'] = dt_classifier.execute(training_set=training_set, testing_set=testing_set)
 
@@ -158,7 +159,9 @@ if __name__ == '__main__':
     # predictions_report['logr'], scores_report['logr_scores'] = knn_classifier.execute(training_set=training_set,
     #                                                                                   testing_set=testing_set)
 
-    end = datetime.now()
+    # end = datetime.now()
+    end = datetime.now() - timedelta(15) # TODO: FIX THIS
+
 
     # Compare results and generate reports
     report = Report(training_set=training_set, testing_set=testing_set, clsf_exec_results=clsf_exec_results,
