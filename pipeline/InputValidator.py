@@ -49,11 +49,6 @@ class InputValidator:
 
                     if (title not in titles_list):
                         titles_list.append(title)
-
-                        # This should be used only if we want to consider studies that doesn't have an abstract field
-                        # so we would evaluate the study only based on its title
-                        # # content = content.split('\n')[0]
-
                         texts_list.append({
                             'title': title,
                             'content': content,
@@ -112,9 +107,8 @@ class InputValidator:
         # Loading dataset configuration
         dataset_option = TestConfiguration().get_dataset_type()
 
-        # TODO: EXPERIMENT - Change datasets
         if dataset_option == 0:
-            # # Using small fake dataset just to test pipeline execution
+            # # Using fake datasets created as a small subset from the original dataset (use just to test pipeline execution)
             print('\n\tUSING SMALL DATASET')
             file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs-small-set/Testing set - Excluded.bib')
             file_path_included_testing = os.path.join(os.getcwd(), 'bibs-small-set/Testing set - Included.bib')
@@ -122,20 +116,12 @@ class InputValidator:
             file_path_included_training = os.path.join(os.getcwd(), 'bibs-small-set/Training set - Included.bib')
 
         elif dataset_option == 1:
-            # # Using original large dataset (testing set way bigger than training)
+            # # Using large dataset created from the original SLR and SLR update (testing set bigger than training)
             print('\n\tUSING ORIGINAL DATASET')
             file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs/Testing set - Excluded.bib')
             file_path_included_testing = os.path.join(os.getcwd(), 'bibs/Testing set - Included.bib')
             file_path_excluded_training = os.path.join(os.getcwd(), 'bibs/Training set - Excluded.bib')
             file_path_included_training = os.path.join(os.getcwd(), 'bibs/Training set - Included.bib')
-
-        elif dataset_option == 2:
-            # # Using inverted large dataset (training set way bigger than testing)
-            print('\n\tUSING INTERVETED DATASET')
-            file_path_excluded_training = os.path.join(os.getcwd(), 'bibs/Testing set - Excluded.bib')
-            file_path_included_training = os.path.join(os.getcwd(), 'bibs/Testing set - Included.bib')
-            file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs/Training set - Excluded.bib')
-            file_path_included_testing = os.path.join(os.getcwd(), 'bibs/Training set - Included.bib')
         else:
             print("\n[ERROR-EnvFile] Invalid dataset option")
             raise Exception

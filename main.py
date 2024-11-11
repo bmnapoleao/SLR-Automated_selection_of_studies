@@ -1,20 +1,19 @@
 # Author: Marcelo Costalonga
 import os.path
 
-from models.ClassifierExecutionResult import ClassifierExecutionResult
-from pipeline.Classifiers import DecisionTreeClassifier, SVMClassifier, KNNClassifier, RandomForestClassifier
-from pipeline.Classifiers import GaussianNaiveBayesClassifier, LinearRegressionClassifier, LogisticRegressionClassifier
+# from pipeline.Classifiers import DecisionTreeClassifier, SVMClassifier, KNNClassifier, RandomForestClassifier
+# from pipeline.Classifiers import GaussianNaiveBayesClassifier, LinearRegressionClassifier, LogisticRegressionClassifier
+from pipeline.Classifiers import SVMClassifier, RandomForestClassifier
 from pipeline.DatasetGenerator import DatasetGenerator
 from pipeline.FeaturesSelector import FeaturesSelector
 from pipeline.InputValidator import InputValidator
 from pipeline.Report import Report
 from pipeline.TextFiltering import TextFilter
-from pipeline.BibFormater import BibFormater
-from datetime import datetime, timedelta
+from datetime import datetime
 from TestConfigurationLoader import TestConfiguration
 import sys
 
-DEFAULT_OUTPUT_DIR = 'output-v7/'
+DEFAULT_OUTPUT_DIR = 'reports/'
 
 if __name__ == '__main__':
     start = datetime.now()
@@ -31,12 +30,11 @@ if __name__ == '__main__':
             raise Exception
 
         try:
-            env_file_path = sys.argv[2]  # TODO: add check to assert env file passed really exists
+            env_file_path = sys.argv[2]
             assert env_file_path.endswith('.env')
-        except Exception:
-            print("\n[ERROR: MISSING ARGS] Missing second parameter with the env file path. "
-                  "Please inform in the command line.\n")
-            raise Exception
+        except Exception as e:
+            print(e)
+            raise
 
     except AssertionError:
         exit(0)
@@ -66,9 +64,6 @@ if __name__ == '__main__':
     validator = InputValidator()
     validator.execute()
 
-    # Print number of studies by year of each set
-    BibFormater.get_dataset_years(validator.training_set, validator.testing_set)
-
     # Apply text filtering techniques
     text_filter = TextFilter(training_set=validator.training_set, testing_set=validator.testing_set)
     text_filter.execute()
@@ -95,6 +90,10 @@ if __name__ == '__main__':
         # # WITHOUT FEATURE SELECTION (TF_IDF only)
         training_set = dataset_generator.training_dataset
         testing_set = dataset_generator.testing_dataset
+
+    # # DT
+    # dt_classifier = DecisionTreeClassifier(seed=42, n_splits=number_of_splits)
+    # clsf_exec_results['dt'] = dt_classifier.execute(training_set=training_set, testing_set=testing_set)
 
     # SVM
     svm_classifier = SVMClassifier(seed=42, n_splits=number_of_splits)

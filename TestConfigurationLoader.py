@@ -1,11 +1,12 @@
+# Author: Marcelo Costalonga
+
 import os
 from enum import Enum
 from dotenv import load_dotenv
 
 DATASET_TYPES = {
-    'dummy': 0,
-    'original': 1,
-    'inverted': 2
+    'fake': 0,
+    'original': 1
 }
 FS_SCORE_METHODS = {
     'affinity': 0,
@@ -14,9 +15,10 @@ FS_SCORE_METHODS = {
     'pearson': 3
 }
 CROSS_VALS = {
-    'kfold': 0, # FIXME#28: Initially we're applying crossval + gridSearch fit (test without grid search - 26/05)
-    'series': 1,  # FIXME#28: Initially we're applying crossval + gridSearch fit (test without grid search - 26/05)
-    'none': 2
+    'kfold': 0,
+    'series': 1,
+    'none': 2,
+    'grid_search': 2
 }
 
 
@@ -53,7 +55,7 @@ class TestConfiguration(metaclass=Singleton):
             self.used_dataset = os.getenv('DATASET', 'original').lower()
             self.used_fs = os.getenv('USED_FEATURE_SELECTION', 'false').lower() == 'true'
             self.used_score_method = os.getenv('FS_SCORE_METHOD', 'affinity').lower()
-            self.used_cross_val_method = os.getenv('CROSS_VAL', 'series').lower()
+            self.used_cross_val_method = os.getenv('CROSS_VAL').lower()
             self.tf_idf_config = os.getenv('TF_IDF_CONFIG').lower()
             self.number_of_splits = os.getenv('NUMBER_OF_SPLITS').lower()
             self.seed = os.getenv('SEED').lower()

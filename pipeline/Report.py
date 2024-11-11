@@ -3,16 +3,12 @@
 import os
 import pandas as pd
 from pathlib import Path
-from datetime import datetime, timedelta
-import matplotlib.pyplot as plt  # FIXME#26: check if need to include in requirement
-from sklearn.metrics import roc_curve, auc
+from datetime import datetime
 from TestConfigurationLoader import TestConfiguration
 
 
 # Class that writes a report file with tge details of the execution
 class Report:
-    # _df_testing = pd.DataFrame()  # TODO: check unused var
-    # _df_training = pd.DataFrame()  # TODO: check unused var
     _classifiers_labels = list()
     _y_test: list
 
@@ -56,7 +52,6 @@ class Report:
             self._df_test_proba[label + '_proba'] = clsf_exec_results[clsf]['predictions']['y_proba']
 
 
-    # TODO: Simplify methods _set_scores and params are too similar
     def _set_scores(self, clsf_exec_results: dict):
         index = self._classifiers_labels
         table = list()
@@ -182,37 +177,6 @@ class Report:
         return
 
     @staticmethod
-    def compute_and_plot_ROC_AUC(y_test, y_pred, title):
-        # Compute ROC curve
-        fpr, tpr, thresholds = roc_curve(y_test, y_pred)
-        roc_auc = auc(fpr, tpr)
-
-        # Plot ROC curve
-        plt.figure()
-        plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
-        plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.05])
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title('ROC - {}'.format(title))
-        plt.legend(loc="lower right")
-        plt.show(block=True)
-
-    # TODO: Check unused method, maybe if we starting ploting graphs as report uncomment this and change
-    #  `report_and_write_csv` name back to `create_multi_sheet_xlsx`
-    # def report_and_write_csv(self, start: datetime, end: datetime):
-    #     # FIXME#15: use save plot instead and organizer the output into multiple folders for each iteration
-    #     # Report.compute_and_plot_ROC_AUC(self._y_test, self._df_testing['DT_pred'], 'DT')
-    #     # Report.compute_and_plot_ROC_AUC(self._y_test, self._df_testing['SVM_pred'], 'SVM')
-    #
-    #     # TODO: Comment/uncomment just for debug
-    #     # Report.print_detailed_results(df_dt_report, df_svm_report)
-    #
-    #     # Write the details of execution in a xlsx file
-    #     self.create_multi_sheet_xlsx(start, end)
-
-    @staticmethod
     # Formats the difference between two datetime objects to look like "%Hh:%Mm:%Ss" (e.g. "00h:00m:00s")
     def format_timedelta(start: datetime, end: datetime, fmt: str='{hours}:{minutes}:{seconds}'):
         time_diff = end - start
@@ -222,7 +186,6 @@ class Report:
         return datetime.strptime(fmt.format(**time_obj), "%H:%M:%S").strftime("%Hh:%Mm:%Ss")
 
     def _format_specs(self):
-        # FIXME#11: Add other relevant metrics on this sheet, besides total time execution (e.g. CPU, RAM, MEMORY...)
         # Add specs information
         execution_time = Report.format_timedelta(self._start, self._end)
         specs = [
@@ -233,14 +196,6 @@ class Report:
         env_spec = TestConfiguration().get_env_vars_spec()
         specs = specs + env_spec
         self._df_specs = pd.DataFrame(specs, columns=['Information', 'Value'])
-
-        # FIXME#30: Adicionar mais infos na env file
-        #   env file name
-        #   random.seed chosen (entender o usado ao longo do código e o usado no cross_validate / gridSearch...)
-        #   number of splits (entender o usado ao longo do código e o usado no cross_validate / gridSearch...)
-        #   TF_IDF config
-        #   opções de configurações do grid search (separar em outro arquivo JSON, mas salvar o conteúdo no report)
-        #   Adicionar também, o nome dos títulos que foram classificados como FN (false negative)
 
     # Writes a xlsx file with multiple sheets, each sheet contains a different information about the execution
     def report_and_write_csv(self):
@@ -253,19 +208,7 @@ class Report:
             self._df_test_pred.to_excel(writer, sheet_name='Predictions')
             self._df_test_proba.to_excel(writer, sheet_name='Probabilities')
             self._df_params.to_excel(writer, sheet_name='GridSearch Parameters')
-            self._df_specs.to_excel(writer, sheet_name='Test Configuration')  # FIXME#30: Adicionar mais infos na env file
-
-            # df_specs.to_excel(writer, sheet_name='Environment Information') # TODO: Add another sheet with Env info
-            # FIXME#12.1: Add new sheet showing the names of the features selected...
-            # FIXME#12.2: Add new sheet showing graphs and other statistics....
-            # FIXME#12.3: Add classifiers parameters configuration
-
-            # Add information about the classifiers' configuration
-            # specs = ['Pipeline Execution Time', end - start], ['Number of features', self._kfs]
-            # df_specs = pd.DataFrame(specs, columns=['Information', 'Value'])
-            # df_specs.to_excel(writer, sheet_name='Test Configuration')
-            #   # Dataset used - Training and Testing sizes
-            #   # Parameters configuration for each classifier
+            self._df_specs.to_excel(writer, sheet_name='Test Configuration')
             writer.save()
 
 

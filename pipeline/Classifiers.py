@@ -2,24 +2,18 @@
 # (code adapted from: https://github.com/watinha/automatic-selection-slr/blob/master/pipeline/classifiers/__init__.py)
 
 import random
-import numpy as np
 from sklearn import metrics
 from sklearn.metrics import accuracy_score
-from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
+# from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
 from sklearn.metrics import precision_score, recall_score, f1_score
 from TestConfigurationLoader import TestConfiguration
-
-# Classifiers
 from sklearn.tree import DecisionTreeClassifier as SklearnDecisionTreeClassifier
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier as SklearnRandomForestClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_validate, GridSearchCV, TimeSeriesSplit, train_test_split
-
-from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import cross_validate, GridSearchCV, TimeSeriesSplit
+# from sklearn.naive_bayes import GaussianNB
+# from sklearn.linear_model import LinearRegression, LogisticRegression, LinearRegression
 
 
 # Class to split content of training set into multiple folds, grouping them by a specific range of years.
@@ -77,16 +71,7 @@ class SimpleClassifier:
             groups = training_set['years']
             random.seed(self._seed)
             kfold = YearsSplit(n_splits=self._n_splits, years=groups)
-            cross_val_scores = cross_validate(model, X_train, y_train, cv=kfold,
-                                              scoring=['f1_macro', 'precision_macro', 'recall_macro'])
-            print("OUR APPROACH F-measure: %s on average and %s SD" %
-                  (cross_val_scores['test_f1_macro'].mean(), cross_val_scores['test_f1_macro'].std()))
-            print("OUR APPROACH Precision: %s on average and %s SD" %
-                  (cross_val_scores['test_precision_macro'].mean(), cross_val_scores['test_precision_macro'].std()))
-            print("OUR APPROACH Recall: %s on average and %s SD" %
-                  (cross_val_scores['test_recall_macro'].mean(), cross_val_scores['test_recall_macro'].std()))
-            print("-----------------------------------------------------------\n")
-
+            cross_val_scores = cross_validate(model, X_train, y_train, cv=kfold, scoring=['f1_macro', 'precision_macro', 'recall_macro'])
             model.fit(X_train, y_train)
 
         # time series cross validation
@@ -160,7 +145,7 @@ class DecisionTreeClassifier (SimpleClassifier):
         print('\n\n===== Decision Tree Classifier ===== \n\t n_splits=', self._n_splits)
         print('===== Hyperparameter tuning (best params) =====')
         model = SklearnDecisionTreeClassifier()
-        # If cross_validation different from GridSearch just return it
+        # If cross_validation different from GridSearch skip it so we don't perform cross_validation more than once
         if self._cross_val_method != 2:
             return model
 
@@ -198,7 +183,7 @@ class SVMClassifier (SimpleClassifier):
     def get_classifier(self, X, y):
         print('\n\n===== SVM Classifier ===== \n\t n_splits=', self._n_splits)
         model = SVC(random_state=self._seed, probability=True)
-        # If cross_validation different from GridSearch just return it
+        # If cross_validation different from GridSearch skip it so we don't perform cross_validation more than once
         if self._cross_val_method != 2:
             return model
 
@@ -212,6 +197,15 @@ class SVMClassifier (SimpleClassifier):
                     0.9, 0.95, 1.0],
             'class_weight': ['balanced', None]
         }
+
+        # # Best params for RQ2
+        # params = {
+        #     'kernel': ['rbf'],
+        #     'C': [0.65],
+        #     'gamma': [1],
+        #     'tol': [0.8],
+        #     'class_weight': ['balanced']
+        # }
 
         grid_search_default_params = TestConfiguration().get_grid_search_params()
         gs_cv = grid_search_default_params['gs_cv']
@@ -241,7 +235,7 @@ class KNNClassifier (SimpleClassifier):
         print('\n\n===== KNN Classifier ===== \n\t n_splits=', self._n_splits)
         print('===== Hyperparameter tuning (best params) =====')
         model = KNeighborsClassifier()
-        # If cross_validation different from GridSearch just return it
+        # If cross_validation different from GridSearch skip it so we don't perform cross_validation more than once
         if self._cross_val_method != 2:
             return model
 
@@ -279,7 +273,7 @@ class RandomForestClassifier (SimpleClassifier):
         print('\n\n===== Random Forest Classifier ===== \n\t n_splits=', self._n_splits)
         print('===== Hyperparameter tuning (best params) =====')
         model = SklearnRandomForestClassifier(random_state=self._seed)
-        # If cross_validation different from GridSearch just return it
+        # If cross_validation different from GridSearch skip it so we don't perform cross_validation more than once
         if self._cross_val_method != 2:
             return model
 
@@ -293,6 +287,15 @@ class RandomForestClassifier (SimpleClassifier):
             'min_samples_split': [2, 10, 25, 50, 75, 100],
             'class_weight': [None, 'balanced']
         }
+
+        # # Best params for RQ1
+        # params = {
+        #     'n_estimators': [100],
+        #     'criterion': ["gini"],
+        #     'max_depth':[10],
+        #     'min_samples_split': [10],
+        #     'class_weight': ['balanced']
+        # }
 
         grid_search_default_params = TestConfiguration().get_grid_search_params()
         gs_cv = grid_search_default_params['gs_cv']
