@@ -60,6 +60,7 @@ class BibFormater:
                         abstract = entry['abstract']
                         title = entry['title']
                         year = entry['year']
+                        uuid = entry.get('uuid', None)
                         content = u'%s\n%s' % (title, abstract)
 
                         if (title not in titles_list):
@@ -69,7 +70,8 @@ class BibFormater:
                                 'title': title,
                                 'content': content,
                                 'category': category,
-                                'year': int(year)
+                                'year': int(year),
+                                'uuid': uuid
                             })
                         else:
                             if title in duplicated_titles:

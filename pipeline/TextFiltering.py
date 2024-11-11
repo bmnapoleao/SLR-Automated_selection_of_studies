@@ -33,7 +33,8 @@ class TextFilterComposite:
                 'title': text['title'],
                 'content': filtered_text.lower(),
                 'category': text['category'],
-                'year': text['year']
+                'year': text['year'],
+                'uuid': text['uuid']
             })
         return result
 

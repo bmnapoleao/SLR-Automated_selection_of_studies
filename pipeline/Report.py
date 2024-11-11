@@ -123,8 +123,7 @@ class Report:
                 report_file_name = report_file_name.replace('.csv', '.xlsx')
             else:
                 # If output path contains only output_dir, use default output_file_name format
-                # now = datetime.now()
-                now = datetime.now() - timedelta(15) # TODO: FIX THIS
+                now = datetime.now()
                 month_day, hour_min = now.strftime("%b%d,%Hh%Mm").lower().split(',')
                 report_file_name = 'k{}-report-{}-{}.xlsx'.format(k_features, month_day, hour_min)
         else:

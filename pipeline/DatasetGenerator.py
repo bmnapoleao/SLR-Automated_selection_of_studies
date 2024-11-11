@@ -46,8 +46,10 @@ class DatasetGenerator:
         texts = [text_data['content'] for text_data in dataset_lst]
         years = [text_data['year'] for text_data in dataset_lst]
         titles = [text_data['title'] for text_data in dataset_lst]
+        uuid = [text_data['uuid'] for text_data in dataset_lst]
 
         dataset = {
+            'uuid': uuid,
             'titles': titles,
             'texts': texts,
             'categories': np.array(categories),

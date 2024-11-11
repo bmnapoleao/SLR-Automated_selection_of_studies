@@ -44,6 +44,7 @@ class InputValidator:
                     abstract = entry['abstract']
                     title = entry['title']
                     year = entry['year']
+                    uuid = entry.get('uuid', None)
                     content = u'%s\n%s' % (title, abstract)
 
                     if (title not in titles_list):
@@ -57,7 +58,8 @@ class InputValidator:
                             'title': title,
                             'content': content,
                             'category': category,
-                            'year': int(year)
+                            'year': int(year),
+                            'uuid': uuid
                         })
                     else:
                         if title in duplicated_titles:
@@ -112,7 +114,7 @@ class InputValidator:
 
         # TODO: EXPERIMENT - Change datasets
         if dataset_option == 0:
-            # # Using really small dataset
+            # # Using small fake dataset just to test pipeline execution
             print('\n\tUSING SMALL DATASET')
             file_path_excluded_testing = os.path.join(os.getcwd(), 'bibs-small-set/Testing set - Excluded.bib')
             file_path_included_testing = os.path.join(os.getcwd(), 'bibs-small-set/Testing set - Included.bib')
