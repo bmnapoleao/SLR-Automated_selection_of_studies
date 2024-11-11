@@ -1,5 +1,5 @@
 #  Can Machine Learning Support the Selection of Studies for Systematic Literature Review Updates?
-Experiment to analyze the performance of ML algorithms to automate the selection of texts during an SLR update.
+We've developed a pipeline illustrate by ![Pipeline Overview](pipeline-overview.png) to perform multiple tests with different configurations in order to answer our research questions.
 
 ## To reproduce this experiment
 1) Create new python environment
